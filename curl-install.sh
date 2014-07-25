@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+#  url: http://xxxx.com/linux-rootfs-resize.tar.gz
+
+url=""
 
 function get_distro() {
   distro=""
@@ -33,6 +36,7 @@ function install_cloudutils() {
     elif [ ${distro} == "ubuntu" ]; then
       apt-get install -y cloud-utils
     fi
+  fi
   if [ $? != 0 ]; then
     echo "Failed install cloud-utils."
     exit 1;
@@ -40,16 +44,17 @@ function install_cloudutils() {
 }
 
 function install_resize_tools() {
-  curl http://aos.a4c.jp/resize_tool.tar.gz -o /tmp/resize_tool.tar.gz
+  curl ${url} -o /tmp/linux-rootfs-resize.tar.gz
   if [ $? != 0 ]; then
     echo "Failed download resize_tool."
     exit 1;
   fi
-  tar xzf /tmp/resize_tool.tar.gz
-  cd /tmp/resize_tool
+  tar zxf /tmp/linux-rootfs-resize.tar.gz -C /tmp/
+  cd /tmp/linux-rootfs-resize
   ./install
   if [ $? != 0 ]; then
     echo "Failed install resize_tool."
+    rm -rf /tmp/linux-rootfs-resize
     exit 1;
   fi
 }
@@ -58,7 +63,7 @@ function main() {
   install_cloudutils
   install_resize_tools
   echo "Finish install."
-  echo "Enjoy cloud image life."
+  echo "Take snapshot from Clover."
 }
 
 main
