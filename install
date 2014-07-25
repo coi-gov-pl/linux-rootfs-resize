@@ -10,6 +10,9 @@ function deps () {
     [ -f ${file} ] &&
       # is this file new?
       if [ ! -f /tmp/initrd${file} ]; then
+        if [ ! -d /tmp/initrd$(dirname ${file}) ]; then
+          mkdir -p /tmp/initrd$(dirname ${file})
+        fi
         cp -v ${file} /tmp/initrd${file}
         if [ $? != 0 ]; then
           # error, bug out
@@ -152,6 +155,17 @@ distro=""
     grub="grub2"
   elif [[ "$(cat /etc/issue)" == *Debian\ GNU\/Linux\ 6* ]]; then
     distro="debian-6"
+    initrd_path="bin sbin"
+    initrd="/boot/initrd.img-$(uname -r)"
+    kernel="/boot/vmlinuz-$(uname -r)"
+    init_script="scripts/local"
+    proc_insert_point="^mountroot()"
+    proc_name="\        growroot"
+    call_insert_point="^.*pre_mountroot$"
+    grub_config="/boot/grub/grub.cfg"
+    grub="grub2"
+  elif [[ "$(cat /etc/issue)" == *Ubuntu* ]]; then
+    distro="ubuntu"
     initrd_path="bin sbin"
     initrd="/boot/initrd.img-$(uname -r)"
     kernel="/boot/vmlinuz-$(uname -r)"
