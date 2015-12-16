@@ -1,11 +1,14 @@
 growroot()
 {
   echo "[] linux-rootfs-resize ..."
+  # Wait 5 seconds for hard drive to be detected
+  sleep 5
   lvm vgchange --sysinit -an
   lvm_pv_path=$(lvm pvs --noheadings |awk '{print $1}')
   lvm_pv_temp=$(echo ${lvm_pv_path}|sed "s/dev//g")
   lvm_pv_dev=$(echo ${lvm_pv_temp}| sed "s/[^a-z]//g")
   lvm_pv_part=$(echo ${lvm_pv_temp}| sed "s/[^0-9]//g")
+  echo "Growing device ${lvm_pv_dev} partition ${lvm_pv_part}"
   growpart -v /dev/${lvm_pv_dev} ${lvm_pv_part}
   lvm pvresize -v ${lvm_pv_path}
   lvm vgchange --sysinit -ay
