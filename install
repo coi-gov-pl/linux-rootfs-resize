@@ -185,6 +185,19 @@ distro=""
     grub_config="/boot/grub/grub.conf"
     grub="grub1"
   fi
+  elif [[ "$(cat /etc/issue)" == *Oracle\ Linux\ Server\ release\ 7* ]]; then
+    distro="centos-7"
+    initrd_path="bin sbin usr/bin usr/sbin"
+    kernel_version=$(uname -r)
+    initrd=$(ls -1 -t /boot/initramfs-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
+    kernel=$(ls -1 -t /boot/vmlinuz-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
+    init_script="init"
+    proc_insert_point="^export PATH=.*"
+    proc_name="growroot"
+    call_insert_point="^source_all pre-mount"
+    grub_config="/boot/grub2/grub.cfg"
+    grub="grub2"
+  fi
 
 # Debian derivate
 [ -f /etc/issue ] &&
