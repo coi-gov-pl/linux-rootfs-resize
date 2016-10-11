@@ -184,8 +184,7 @@ distro=""
     call_insert_point="^source_all pre-mount"
     grub_config="/boot/grub/grub.conf"
     grub="grub1"
-  fi
-  elif [[ "$(cat /etc/issue)" == *Oracle\ Linux\ Server\ release\ 7* ]]; then
+  elif [[ "$(cat /etc/oracle-release)" == *Oracle\ Linux\ Server\ release\ 7* ]]; then
     distro="centos-7"
     initrd_path="bin sbin usr/bin usr/sbin"
     kernel_version=$(uname -r)
