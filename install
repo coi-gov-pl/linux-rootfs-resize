@@ -187,9 +187,8 @@ distro=""
   elif [[ "$(cat /etc/oracle-release)" == *Oracle\ Linux\ Server\ release\ 7* ]]; then
     distro="centos-7"
     initrd_path="bin sbin usr/bin usr/sbin"
-    kernel_version=$(uname -r)
-    initrd=$(ls -1 -t /boot/initramfs-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
-    kernel=$(ls -1 -t /boot/vmlinuz-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
+    initrd="/boot/initramfs-$(uname -r).img"
+    kernel="/boot/vmlinuz-$(uname -r)"
     init_script="init"
     proc_insert_point="^export PATH=.*"
     proc_name="growroot"
