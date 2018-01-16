@@ -37,7 +37,7 @@ function copy_tools() {
         exit 1
       fi
       # copy tool into initrd
-      cp -v ${toolpath} bin/${tool}
+      cp -v ${toolpath} /bin/${tool}
       # install needed libraries
       deps "($(ldd ${toolpath}))"
     else
@@ -52,12 +52,12 @@ function initrd() {
   # create temp directory and move there
   mkdir /tmp/initrd && cd /tmp/initrd
   # extract current initrd
-  gunzip -c ${initrd} | cpio -i --make-directories
+  gunzip -c -f ${initrd} | cpio -i --make-directories
   # modify
   copy_tools
-  touch etc/mtab
+  touch /etc/mtab
   [ "${mod_type}" == "mod_lvm" ] && \
-    sed -i "s/locking_type = 4/locking_type = 1/" etc/lvm/lvm.conf
+    sed -i "s/locking_type = 4/locking_type = 1/" /etc/lvm/lvm.conf
   mod_file=${inst_dir}/distro/${distro}/${mod_type}
   sed -i -e "/${proc_insert_point}/r ${mod_file}" -e "//N" ${init_script}
   sed -i "/${call_insert_point}/i ${proc_name}" ${init_script}
@@ -91,7 +91,8 @@ function grub_mod() {
       # copy kernel
       [ ! -f ${kernel}-mod ] && cp ${kernel} ${kernel}-mod
       # generate new grub2 config
-      grub-mkconfig -o ${grub_config}
+      grub2-mkconfig -o ${grub_config}
+      grubby --set-default ${kernel}-mod
     ;;
   esac
 }
@@ -119,6 +120,10 @@ function get_distro() {
   [ -f /etc/redhat-release ] &&
     if [[ "$(cat /etc/redhat-release)" == *CentOS\ release\ 6* ]]; then
       distro="centos-6"
+    elif [[ "$(cat /etc/redhat-release)" == *CentOS\ release\ 7* ]]; then
+      distro="centos-7"
+    elif [[ "$(cat /etc/oracle-release)" == *Oracle\ Linux\ Server\ release\ 7* ]]; then
+      distro="oracle-7"
     fi
   [ -f /etc/issue ] &&
     if [[ "$(cat /etc/issue)" == *Debian\ GNU\/Linux\ 7* ]]; then
@@ -143,7 +148,7 @@ function main() {
   partition_type
   [ $? -eq 1 ] && mod_type="mod_lvm" || mod_type="mod"
 
-  # check distro 
+  # check distro
   distro=$(get_distro)
 
   # set distro specific variables
@@ -152,12 +157,31 @@ function main() {
     initrd_path="bin sbin usr/bin usr/sbin"
     initrd="/boot/initramfs-$(uname -r).img"
     kernel="/boot/vmlinuz-$(uname -r)"
+    idistro="centos-7"
+    initrd_path="bin sbin usr/bin usr/sbin"
+    initrd="/boot/initramfs-$(uname -r).img"
+    kernel="/boot/vmlinuz-$(uname -r)"
     init_script="init"
+    proc_insert_point="^export PATH=.*"
+    proc_name="growroot"
+    call_insert_point="^source_all pre-mount"
+    grub_config="/boot/grub2/grub.cfg"
+    grub="grub2"="init"
     proc_insert_point="^export PATH=.*"
     proc_name="growroot"
     call_insert_point="^source_all pre-mount"
     grub_config="/boot/grub/grub.conf"
     grub="grub1"
+  elif [ ${distro} == "centos-7" ]; then
+    initrd_path="/bin /sbin /usr/bin /usr/sbin"
+    initrd=$(ls -1 -t /boot/initramfs-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
+    kernel=$(ls -1 -t /boot/vmlinuz-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
+    init_script="init"
+    proc_insert_point="^export PATH=.*"
+    proc_name="growroot"
+    call_insert_point="^source_all pre-mount"
+    grub_config="/boot/grub2/grub.conf"
+    grub="grub2"
   elif [ ${distro} == "debian-7" ]; then
     initrd_path="bin sbin"
     initrd="/boot/initrd.img-$(uname -r)"
@@ -199,6 +223,16 @@ function main() {
     call_insert_point="^source_all pre-mount"
     grub_config="/boot/grub/grub.conf"
     grub="grub1"
+  elif [ ${distro} == "oracle-7" ]; then
+    initrd_path="/bin /sbin /usr/bin /usr/sbin"
+    initrd="/boot/initramfs-$(uname -r).img"
+    kernel="/boot/vmlinuz-$(uname -r)"
+    init_script="init"
+    proc_insert_point="^export PATH=.*"
+    proc_name="growroot"
+    call_insert_point="^source_all pre-mount"
+    grub_config="/boot/grub2/grub.cfg"
+    grub="grub2"
   fi
 
   initrd
@@ -207,4 +241,3 @@ function main() {
 
 main
 exit 0
-

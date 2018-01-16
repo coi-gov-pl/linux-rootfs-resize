@@ -9,6 +9,8 @@ function get_distro() {
   [ -f /etc/redhat-release ] &&
     if [[ "$(cat /etc/redhat-release)" == *CentOS\ release\ 6* ]]; then
       distro="centos-6"
+    elif [[ "$(cat /etc/redhat-release)" == *Red\ Hat\ Enterprise\ Linux\ Server\ release\ 7* ]]; then
+      distro="oracle-7"
     fi
   [ -f /etc/issue ] &&
     if [[ "$(cat /etc/issue)" == *Debian* ]]; then
@@ -24,10 +26,10 @@ function get_distro() {
 }
 
 function install_cloudutils() {
-  # check distro 
+  # check distro
   distro=$(get_distro)
 
-  which growpart >/dev/null 2>&1 
+  which growpart >/dev/null 2>&1
   if [ $? != 0 ]; then
     if [ ${distro} == "centos-6" ]; then
       yum install -y cloud-utils
