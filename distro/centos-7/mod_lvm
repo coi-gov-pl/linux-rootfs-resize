@@ -15,3 +15,4 @@ growroot()
   e2fsck -p -f ${lvm_lv_root}
   resize2fs -p ${lvm_lv_root}
 }
+
