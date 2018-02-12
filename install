@@ -68,8 +68,7 @@ gziped-initrd() {
 unpack-initrd() {
   # check format of current initrd and extract it
   if gziped-initrd; then
-        #echo "dracut"
-		execute=$(/usr/lib/dracut/skipcpio ${initrd} | gunzip -c | cpio -i -d && echo )
+	execute=$(/usr/lib/dracut/skipcpio ${initrd} | gunzip -c | cpio -i)
   else
 	execute=$(gunzip -c ${initrd} | cpio -i --make-directories)
   fi
