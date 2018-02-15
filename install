@@ -68,9 +68,9 @@ gziped-initrd() {
 unpack-initrd() {
   # check format of current initrd and extract it
   if gziped-initrd; then
-	execute=$(/usr/lib/dracut/skipcpio ${initrd} | gunzip -c | cpio -i)
+  	execute=$(gunzip -c ${initrd} | cpio -i --make-directories)
   else
-	execute=$(gunzip -c ${initrd} | cpio -i --make-directories)
+  	execute=$(/usr/lib/dracut/skipcpio ${initrd} | gunzip -c | cpio -i)
   fi
 }
 
@@ -291,8 +291,8 @@ else
 exit 1  
 fi
 
+main
 initrd
 grub-mod ${grub}
 
-main
 exit 0
