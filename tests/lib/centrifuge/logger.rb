@@ -1,7 +1,7 @@
+require 'logger'
+
 module Centrifuge
   class << self
-    require 'logger'
-
     begin
       @@logger = Logger.new(STDERR)
       loglevel = ENV.fetch('CENTRIFUGE_LOG_LEVEL', 'INFO')

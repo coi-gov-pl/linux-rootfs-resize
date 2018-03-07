@@ -1,3 +1,5 @@
+require 'erb'
+
 module Centrifuge
   module Vagrant
     class Vfile
@@ -30,8 +32,6 @@ module Centrifuge
       private
 
       def compile
-        require 'erb'
-
         currdir = File.dirname(__FILE__)
         template = ERB.new(File.read("#{currdir}/vfile.erb"))
         template.result(binding)
