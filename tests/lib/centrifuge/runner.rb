@@ -1,0 +1,41 @@
+require 'centrifuge/vagrant'
+
+module Centrifuge
+  class Runner
+    def initialize(spec)
+      @vagrant = Centrifuge::Vagrant.new(spec[:box])
+    end
+
+    def up
+      @vagrant.up
+    end
+
+    def halt
+      @vagrant.halt
+    end
+
+    def run(script, options = {})
+      exec_on_vg(script, options)
+    end
+
+    def resize_disk(spec)
+      Centrifuge.logger.debug "Resizing VM HDD to #{spec}"
+    end
+
+    def to_s
+      "centrifuge via Vagrant of #{@vagrant.box}"
+    end
+
+    def cleanup
+      @vagrant.cleanup
+    end
+
+    private
+
+    def exec_on_vg(command, options)
+      defaults = { output: :print }
+      calculated = defaults.merge(options)
+      @vagrant.exec(command, calculated)
+    end
+  end
+end
