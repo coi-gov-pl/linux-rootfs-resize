@@ -1,7 +1,5 @@
 require 'centrifuge/vagrant/vfile'
-require 'ostruct'
-require 'open3'
-require 'nio'
+require 'centrifuge/cmdexec'
 
 module Centrifuge
   module Vagrant
@@ -36,6 +34,10 @@ module Centrifuge
         end
       end
 
+      def workdir
+        @vfile.workdir
+      end
+
       private
 
       def exec_script(command, options)
@@ -46,6 +48,7 @@ module Centrifuge
         begin
           File.open(localscript, 'w') do |file|
             file.write(command)
+            file.flush
             result = vagrant "ssh -c 'bash -leo pipefail #{remotescript}'",
               options[:output] == :capture
           end
@@ -56,56 +59,13 @@ module Centrifuge
       end
 
       def vagrant(subcommand, capture = false)
-        result = OpenStruct.new
-        result.retcode = nil
-        result.output = nil
-
         command = "vagrant #{subcommand}"
-        Centrifuge.logger.debug ">>> #{command}"
-        Dir.chdir(@vfile.workdir) do
-          if capture
-            output, status = Open3.capture2(command)
-            Centrifuge.logger.debug "Captured output: #{output}"
-            result.output = output
-            result.retcode = status.exitstatus
-          else
-            result.retcode = streaming command
-          end
-        end
-        result
-      end
-
-      def streaming(command)
-        selector = NIO::Selector.new
-
-        stdin, stdout, stderr, thread = Open3.popen3(command)
-
-        monitor_stdout = selector.register(stdout, :r)
-        monitor_stderr = selector.register(stderr, :r)
-
-        monitor_stdout.value = proc {
-          line = monitor_stdout.io.read_nonblock(4096)
-          Centrifuge.logger.info ">>> #{line.rstrip}"
-        }
-        monitor_stderr.value = proc {
-          line = monitor_stderr.io.read_nonblock(4096)
-          Centrifuge.logger.info ">>> #{line.rstrip}"
-        }
-
-        timeout = 30 * 60 # seconds
-
-        loop do
-          begin
-            ready = selector.select(timeout)
-            raise 'Command timeout' if ready.nil?
-
-            ready.each { |m| m.value.call }
-          rescue EOFError
-            break
-          end
-        end
-
-        thread.value.exitstatus
+        indent = 'vagrant'.rjust(7,' ')
+        Centrifuge::Exec.exec(command,
+          capture: capture,
+          indent: "[#{indent}] ",
+          chdir: @vfile.workdir
+        )
       end
 
       def ensure_vfile

@@ -3,18 +3,27 @@ require 'erb'
 module Centrifuge
   module Vagrant
     class Vfile
-      attr_reader :workdir
 
       def initialize(box)
         @box = box
+        @workdir = nil
+      end
+
+      def workdir
+        if @workdir.nil?
+          slugged = @box.gsub(/\//, '-')
+          @workdir = Dir.mktmpdir(['centrifuge', slugged])
+        end
+        @workdir
       end
 
       def create
         Centrifuge.logger.debug "Creating Vagrantfile for #{@box}"
-        slugged = @box.gsub(/\//, '-')
-        @workdir = Dir.mktmpdir(['centrifuge', slugged])
-        open("#{@workdir}/Vagrantfile", "w") do |targetfile|
+
+        vfile_location = "#{workdir}/Vagrantfile"
+        open(vfile_location, "w") do |targetfile|
           source = compile
+          Centrifuge.logger.debug "Vagrantfile location: #{vfile_location}"
           Centrifuge.logger.debug "Vagrantfile source: \n#{source}"
           targetfile.write(source)
         end

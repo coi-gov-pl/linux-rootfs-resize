@@ -8,6 +8,7 @@ group :tests do
   gem 'rspec-its', require: false
   gem 'vagrant-wrapper', require: false
   gem 'nio4r', require: false
+  gem 'inifile', require: false
 end
 
 group :development do

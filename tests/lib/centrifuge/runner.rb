@@ -1,9 +1,11 @@
 require 'centrifuge/vagrant'
+require 'centrifuge/hddresizer'
 
 module Centrifuge
   class Runner
     def initialize(spec)
       @vagrant = Centrifuge::Vagrant.new(spec[:box])
+      @hddresizer = Centrifuge::HddResizer.new(@vagrant)
     end
 
     def up
@@ -19,7 +21,7 @@ module Centrifuge
     end
 
     def resize_disk(spec)
-      Centrifuge.logger.debug "Resizing VM HDD to #{spec}"
+      @hddresizer.resize(spec)
     end
 
     def to_s
