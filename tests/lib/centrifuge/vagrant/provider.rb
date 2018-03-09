@@ -49,7 +49,7 @@ module Centrifuge
           File.open(localscript, 'w') do |file|
             file.write(command)
             file.flush
-            result = vagrant "ssh -c 'bash -leo pipefail #{remotescript}'",
+            result = vagrant "ssh -c 'sudo -i bash -leo pipefail #{remotescript}'",
               options[:output] == :capture
           end
         ensure

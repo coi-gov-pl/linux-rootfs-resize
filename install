@@ -1,22 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # by Robert Plestenjak, robert.plestenjak@xlab.si
 # by Stanislav Petr, glux@glux.org
+# by Krzysztof Suszynski, krzysztof.suszynski@coi.gov.pl
 #
 # depends on: cloud-utils
 
-# Change current working directory to script directory
-SOURCE="${BASH_SOURCE[0]}"
-# resolve $SOURCE until the file is no longer a symlink
-while [ -h "$SOURCE" ]; do
-  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-  SOURCE="$(readlink "$SOURCE")"
-  # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
-done
-DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-cd $DIR
+set -eo pipefail
 
+source "$( dirname "${BASH_SOURCE[0]}" )/loader.bash"
+
+loader_flag "${BASH_SOURCE[0]}"
+loader_addpath source
+
+include install-prerequisites.bash
+include modify-initrd.bash
+include modify-grub.bash
 
 function deps() {
   for file in ${@}; do
@@ -60,12 +59,12 @@ function copy-tools() {
   done <${inst_dir}/distro/${distro}/deps
 }
 
-gziped-initrd() {
+function gziped-initrd() {
   file ${initrd} | grep -q gzip
   return $(expr 1 - $?)
 }
 
-unpack-initrd() {
+function unpack-initrd() {
   # check format of current initrd and extract it
   if gziped-initrd; then
   	execute=$(gunzip -c ${initrd} | cpio -i --make-directories)
@@ -74,7 +73,7 @@ unpack-initrd() {
   fi
 }
 
-repack-initrd() {
+function repack-initrd() {
   find ./ | cpio -H newc -o > /tmp/initrd.cpio
   if gziped-initrd; then
     gzip -c /tmp/initrd.cpio > ${initrd%-*}mod-${initrd##*-}
@@ -83,12 +82,12 @@ repack-initrd() {
   fi
 }
 
-is-initrd-systemd() {
+function is-initrd-systemd() {
   [ -x "${init_script}" ] && file "${init_script}" | grep -q "GNU/Linux"
   return $?
 }
 
-modify-initrd-systemv() {
+function modify-initrd-systemv() {
   touch etc/mtab
   [ "${mod_type}" == "mod_lvm" ] && \
     sed -i "s/locking_type = 4/locking_type = 1/" etc/lvm/lvm.conf
@@ -97,7 +96,7 @@ modify-initrd-systemv() {
   sed -i "/${call_insert_point}/i ${proc_name}" ${init_script}
 }
 
-modify-initrd-systemd() {
+function modify-initrd-systemd() {
   local mod_file=${inst_dir}/distro/${distro}/${mod_type}
   cp ${inst_dir}/systemd-growroot.service usr/lib/systemd/system/systemd-growroot.service
   ln -s usr/lib/systemd/system/systemd-growroot.service usr/lib/systemd/system/sysinit.target.wants/systemd-growroot.service
@@ -106,7 +105,7 @@ modify-initrd-systemd() {
   chmod +x bin/auto-growroot
 }
 
-initrd() {
+function initrd() {
   # clean up
   [ -d /tmp/initrd ] && rm -rf /tmp/initrd
   # create temp directory and move there
@@ -183,15 +182,15 @@ function get-distro() {
 if
 [ -f /etc/redhat-release ] && [ $(cat /etc/redhat-release | wc -w) -gt 0 ]; then
   if [[ "$(cat /etc/redhat-release)" == Red*Hat*Linux*Server\ release\ 7* ]]; then
-	echo "centos-7"	
+	echo "centos-7"
   elif [[ "$(cat /etc/redhat-release)" == *CentOS\ Linux\ release\ 7* ]]; then
-    echo "centos-7"	
+    echo "centos-7"
   elif   [[ "$(cat /etc/redhat-release)" == *CentOS\ release\ 6* ]]; then
     echo "centos-6"
-  else 
+  else
     echo "unknown"
 fi
-  elif 
+  elif
 [ -f /etc/issue ] && [ $(cat /etc/issue | wc -w) -gt 0 ]; then
 if
  [[ "$(cat /etc/issued)" == *Debian\ GNU\/Linux\ 8* ]]; then
@@ -201,8 +200,8 @@ if
   elif [[ "$(cat /etc/issued)" == *Debian\ GNU\/Linux\ 6* ]]; then
   	echo "debian-6"
   elif [[ "$(cat /etc/issued)" == *Oracle\ Linux\ Server\ release\ 6* ]]; then
-  	echo "oracle-6"  
-  else 
+  	echo "oracle-6"
+  else
     echo "unknown"
 fi
 else
@@ -217,82 +216,87 @@ function main() {
   # set common variables
   partition-type
   [ $? -eq 1 ] && mod_type="mod_lvm" || mod_type="mod"
-}
+
   # check distro and set distro specific variables
   distro=$(get-distro)
 
-# RedHat derivate
-if [ ${distro} == "centos-7" ]; then
-    initrd_path="bin sbin usr/bin usr/sbin"
-    kernel_version=$(uname -r)
-    initrd=$(ls -1 -t /boot/initramfs-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
-    kernel=$(ls -1 -t /boot/vmlinuz-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
-    init_script="init"
-    proc_insert_point="^export PATH=.*"
-    proc_name="growroot"
-    call_insert_point="^source_all pre-mount"
-    grub_config="/boot/grub2/grub.cfg"
-    grub="grub2" 
-elif [ ${distro} == "centos-6" ]; then  
-    initrd_path="bin sbin usr/bin usr/sbin"
-    kernel_version=$(uname -r)
-    initrd=$(ls -1 -t /boot/initramfs-* -1 | grep -v mod | head -n 1)
-    kernel=$(ls -1 -t /boot/vmlinuz-* -1 | grep -v mod | head -n 1)
-    init_script="init"
-    proc_insert_point="^export PATH=.*"
-    proc_name="growroot"
-    call_insert_point="^source_all pre-mount"
-    grub_config="/boot/grub/grub.conf"
-    grub="grub1"
-elif [ ${distro} == "debian-8" ]; then  
-    initrd_path="bin sbin"
-    initrd="/boot/initrd.img-$(uname -r)"
-    kernel="/boot/vmlinuz-$(uname -r)"
-    init_script="scripts/local"
-    proc_insert_point="^mountroot()"
-    proc_name="\        growroot"
-    call_insert_point="^.*local_premount$"
-    grub_config="/boot/grub/grub.cfg"
-    grub="grub2"
-elif [ ${distro} == "debian-7" ]; then
-    initrd_path="bin sbin"
-    initrd="/boot/initrd.img-$(uname -r)"
-    kernel="/boot/vmlinuz-$(uname -r)"
-    init_script="scripts/local"
-    proc_insert_point="^mountroot()"
-    proc_name="\        growroot"
-    call_insert_point="^.*pre_mountroot$"
-    grub_config="/boot/grub/grub.cfg"
-    grub="grub2"
-elif [ ${distro} == "debian-6" ]; then  
-    initrd_path="bin sbin"
-    initrd="/boot/initrd.img-$(uname -r)"
-    kernel="/boot/vmlinuz-$(uname -r)"
-    init_script="scripts/local"
-    proc_insert_point="^mountroot()"
-    proc_name="\        growroot"
-    call_insert_point="^.*pre_mountroot$"
-    grub_config="/boot/grub/grub.cfg"
-    grub="grub2"
-elif [ ${distro} == "oracle-6" ]; then
-    initrd_path="bin sbin usr/bin usr/sbin"
-    initrd="/boot/initramfs-$(uname -r).img"
-    kernel="/boot/vmlinuz-$(uname -r)"
-    init_script="init"
-    proc_insert_point="^export PATH=.*"
-    proc_name="growroot"
-    call_insert_point="^source_all pre-mount"
-    grub_config="/boot/grub/grub.conf"
-    grub="grub1"
-elif [ ${distro} == "unknown" ]; then
-    echo "Distribution NOT supported!"
-else
-  	echo "Distribution NOT supported!"
-exit 1  
-fi
+  # RedHat derivate
+  if [ ${distro} == "centos-7" ]; then
+      initrd_path="bin sbin usr/bin usr/sbin"
+      kernel_version=$(uname -r)
+      initrd=$(ls -1 -t /boot/initramfs-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
+      kernel=$(ls -1 -t /boot/vmlinuz-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
+      init_script="init"
+      proc_insert_point="^export PATH=.*"
+      proc_name="growroot"
+      call_insert_point="^source_all pre-mount"
+      grub_config="/boot/grub2/grub.cfg"
+      grub="grub2"
+  elif [ ${distro} == "centos-6" ]; then
+      initrd_path="bin sbin usr/bin usr/sbin"
+      kernel_version=$(uname -r)
+      initrd=$(ls -1 -t /boot/initramfs-* -1 | grep -v mod | head -n 1)
+      kernel=$(ls -1 -t /boot/vmlinuz-* -1 | grep -v mod | head -n 1)
+      init_script="init"
+      proc_insert_point="^export PATH=.*"
+      proc_name="growroot"
+      call_insert_point="^source_all pre-mount"
+      grub_config="/boot/grub/grub.conf"
+      grub="grub1"
+  elif [ ${distro} == "debian-8" ]; then
+      initrd_path="bin sbin"
+      initrd="/boot/initrd.img-$(uname -r)"
+      kernel="/boot/vmlinuz-$(uname -r)"
+      init_script="scripts/local"
+      proc_insert_point="^mountroot()"
+      proc_name="\        growroot"
+      call_insert_point="^.*local_premount$"
+      grub_config="/boot/grub/grub.cfg"
+      grub="grub2"
+  elif [ ${distro} == "debian-7" ]; then
+      initrd_path="bin sbin"
+      initrd="/boot/initrd.img-$(uname -r)"
+      kernel="/boot/vmlinuz-$(uname -r)"
+      init_script="scripts/local"
+      proc_insert_point="^mountroot()"
+      proc_name="\        growroot"
+      call_insert_point="^.*pre_mountroot$"
+      grub_config="/boot/grub/grub.cfg"
+      grub="grub2"
+  elif [ ${distro} == "debian-6" ]; then
+      initrd_path="bin sbin"
+      initrd="/boot/initrd.img-$(uname -r)"
+      kernel="/boot/vmlinuz-$(uname -r)"
+      init_script="scripts/local"
+      proc_insert_point="^mountroot()"
+      proc_name="\        growroot"
+      call_insert_point="^.*pre_mountroot$"
+      grub_config="/boot/grub/grub.cfg"
+      grub="grub2"
+  elif [ ${distro} == "oracle-6" ]; then
+      initrd_path="bin sbin usr/bin usr/sbin"
+      initrd="/boot/initramfs-$(uname -r).img"
+      kernel="/boot/vmlinuz-$(uname -r)"
+      init_script="init"
+      proc_insert_point="^export PATH=.*"
+      proc_name="growroot"
+      call_insert_point="^source_all pre-mount"
+      grub_config="/boot/grub/grub.conf"
+      grub="grub1"
+  elif [ ${distro} == "unknown" ]; then
+      echo "Distribution NOT supported!"
+  else
+    	echo "Distribution NOT supported!"
+  exit 1
+  fi
+}
 
-main
-initrd
-grub-mod ${grub}
+install-prerequisites
+modify-initrd
+modify-grub
+
+# main
+# initrd
+# grub-mod ${grub}
 
 exit 0
