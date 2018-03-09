@@ -2,26 +2,10 @@
 
 include validation/bash.bash
 include lang/array.bash
+include view/colors.bash
 
 LRR_LOG_LEVEL=${LRR_LOG_LEVEL:-INFO}
 
-export COLOR_NC='\e[0m' # No Color
-export COLOR_WHITE='\e[1;37m'
-export COLOR_BLACK='\e[0;30m'
-export COLOR_BLUE='\e[0;34m'
-export COLOR_LIGHT_BLUE='\e[1;34m'
-export COLOR_GREEN='\e[0;32m'
-export COLOR_LIGHT_GREEN='\e[1;32m'
-export COLOR_CYAN='\e[0;36m'
-export COLOR_LIGHT_CYAN='\e[1;36m'
-export COLOR_RED='\e[0;31m'
-export COLOR_LIGHT_RED='\e[1;31m'
-export COLOR_PURPLE='\e[0;35m'
-export COLOR_LIGHT_PURPLE='\e[1;35m'
-export COLOR_BROWN='\e[0;33m'
-export COLOR_YELLOW='\e[1;33m'
-export COLOR_GRAY='\e[0;30m'
-export COLOR_LIGHT_GRAY='\e[0;37m'
 
 function logger.__should-print {
   local level="$1"
@@ -40,27 +24,34 @@ function logger.__should-print {
 function logger.debug {
   local message="$@"
   if logger.__should-print 'DEBUG'; then
-    echo -e "${COLOR_LIGHT_BLUE}${message}${COLOR_NC}"
+    echo -e "${COLOR_LIGHT_BLUE}DEBUG: ${message}${COLOR_NC}" 1>&2
   fi
 }
 
 function logger.info {
   local message="$@"
   if logger.__should-print 'INFO'; then
-    echo -e "${COLOR_GREEN}${message}${COLOR_NC}"
+    echo -e "${COLOR_LIGHT_GRAY}INFO: ${message}${COLOR_NC}" 1>&2
+  fi
+}
+
+function logger.success {
+  local message="$@"
+  if logger.__should-print 'INFO'; then
+    echo -e "${COLOR_LIGHT_GREEN}${message}${COLOR_NC}" 1>&2
   fi
 }
 
 function logger.warn {
   local message="$@"
   if logger.__should-print 'WARN'; then
-    echo -e "${COLOR_YELLOW}${message}${COLOR_NC}"
+    echo -e "${COLOR_YELLOW}WARN: ${message}${COLOR_NC}" 1>&2
   fi
 }
 
 function logger.error {
   local message="$@"
   if logger.__should-print 'ERROR'; then
-    echo -e "${COLOR_RED}${message}${COLOR_NC}"
+    echo -e "${COLOR_RED}ERROR: ${message}${COLOR_NC}" 1>&2
   fi
 }

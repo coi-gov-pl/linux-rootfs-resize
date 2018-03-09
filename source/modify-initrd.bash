@@ -4,5 +4,5 @@ include logger.bash
 
 function modify-initrd {
   #statements
-  logger.info '==> modify-initrd'
+  logger.info '==> Modifing Initrd'
 }

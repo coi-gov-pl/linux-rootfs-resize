@@ -8,11 +8,13 @@
 
 set -eo pipefail
 
-source "$( dirname "${BASH_SOURCE[0]}" )/loader.bash"
+repodir="$( dirname "${BASH_SOURCE[0]}" )"
+source "${repodir}/source/loader.bash"
 
 loader_flag "${BASH_SOURCE[0]}"
-loader_addpath source
+loader_addpath "${repodir}/source"
 
+include view.bash
 include install-prerequisites.bash
 include modify-initrd.bash
 include modify-grub.bash
@@ -291,9 +293,15 @@ function main() {
   fi
 }
 
+loader_finish
+
+view.welcome
+
 install-prerequisites
 modify-initrd
 modify-grub
+
+view.farewell
 
 # main
 # initrd
