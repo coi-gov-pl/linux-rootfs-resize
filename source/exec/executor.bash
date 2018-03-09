@@ -3,7 +3,7 @@
 function executor.stream {
   local command="$@"
   logger.debug "Executing command: ${command}"
-  if [ "${LRR_EXEC}" -ne 0 ]; then
+  if [ "${LRR_EXEC:-1}" -ne 0 ]; then
     $command
     local ret=$?
   fi
@@ -13,7 +13,7 @@ function executor.stream {
 function executor.capture {
   local command="$@"
   logger.debug "Executing command: ${command}"
-  if [ "${LRR_EXEC}" -ne 0 ]; then
+  if [ "${LRR_EXEC:-1}" -ne 0 ]; then
     local output="$($command)"
     local ret=$?
   fi
