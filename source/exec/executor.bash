@@ -14,7 +14,8 @@ function executor.capture {
   local command="$@"
   logger.debug "Executing command: ${command}"
   if [ "${LRR_EXEC:-1}" -ne 0 ]; then
-    local output="$($command)"
+    local output
+    output=`$command`
     local ret=$?
   fi
   echo "${output}"

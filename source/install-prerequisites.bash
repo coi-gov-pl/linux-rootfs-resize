@@ -3,6 +3,7 @@
 include logger.bash
 include facter.bash
 include validation/root.bash
+include validation/os.bash
 include view/colors.bash
 include exec/executor.bash
 include exec/package.bash
@@ -24,18 +25,23 @@ function install-prerequisites {
 }
 
 function install-prerequisites.repositories {
-  if [[ "$(facter.get 'osfamily')" == 'RedHat' ]]; then
+  local osfamily=$(facter.get 'osfamily')
+  local operatingsystem=$(facter.get 'operatingsystem')
+  local operatingsystemmajrelease=$(facter.get 'operatingsystemmajrelease')
+  if [[ $osfamily == 'RedHat' ]]; then
     install-prerequisites.epel
+  elif [[ $operatingsystem == 'Debian' ]] && [ $operatingsystemmajrelease -lt 8 ]; then
+    package.apt.add-repo 'http://http.debian.net/debian' wheezy-backports main
   fi
 }
 
 function install-prerequisites.epel {
   logger.info 'Installing EPEL'
   local uri="https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(facter.get 'operatingsystemmajrelease').noarch.rpm"
-  if ! rpm -q 2>&1 >/dev/null; then
-    if [[ "$(facter.get 'operatingsystem')" == 'CentOS' ]]; then
-      executor.stream 'yum install -y epel-release'
-    else
+  if [[ "$(facter.get 'operatingsystem')" == 'CentOS' ]]; then
+    package.install epel-release
+  else
+    if ! package.is-installed epel-release; then
       executor.stream "yum install -y ${uri}"
     fi
   fi

@@ -5,9 +5,6 @@ include facter/bash.bash
 
 if (( $BASH_MAJOR_VERSION >= 5 )) || (( $BASH_MINOR_VERSION >= 2 )); then
   declare -gA __facter_facts
-else
-  facter_tmpfile=$(mktemp /tmp/lrr.XXXXXX)
-  trap "{ rm -f $facter_tmpfile; }" EXIT
 fi
 
 function facter.set {
@@ -44,24 +41,15 @@ function facter.modern.get {
 function facter.legacy.set {
   local key="$1"
   local value="$2"
-  local facts_serialized="$(cat $facter_tmpfile)"
-  declare -A facts
-  if ! [[ "${facts_serialized}-X" == "-X" ]]; then
-    eval "${facts_serialized}"
-  fi
-  facts[$key]="${value}"
-  facts_serialized="$(declare -p facts)"
-  echo $facts_serialized > $facter_tmpfile
+
+  eval "export __facter_facts_${key}='${value}'"
 }
 
 function facter.legacy.get {
   local key="$1"
-  local facts_serialized="$(cat $facter_tmpfile)"
-  declare -A facts
-  if ! [[ "${facts_serialized}-X" == "-X" ]]; then
-    eval "${facts_serialized}"
-  fi
-  local value=${facts[$key]}
+  local fact_value_name="__facter_facts_${key}"
+
+  local value="${!fact_value_name}"
   if [[ "${value}-X" == "-X" ]]; then
     logger.warn "Fact ${key} is not known!"
   fi
@@ -69,3 +57,4 @@ function facter.legacy.get {
 }
 
 include facter/os.bash
+include facter/kernel.bash

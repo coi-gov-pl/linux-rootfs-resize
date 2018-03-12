@@ -12,6 +12,7 @@ function facter.os.resolve {
     facter.os.debian.resolve
   else
     logger.error 'Unsupported OS Family. Supported families are: RedHat and Debian'
+    exit 5
   fi
   local major=$(facter.get 'operatingsystemrelease' | cut -d '.' -f 1)
   facter.set 'operatingsystemmajrelease' $major
