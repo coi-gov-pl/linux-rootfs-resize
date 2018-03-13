@@ -21,7 +21,13 @@ function install-prerequisites {
 
   install-prerequisites.repositories
 
-  package.install 'parted cloud-utils'
+  local packages='parted cloud-utils cpio gzip'
+  local initrd_packaging=$(facter.get initrd_packaging)
+  if [[ $initrd_packaging == 'cpio' ]]; then
+    packages="$packages dracut"
+  fi
+  logger.debug "Prerequisites: ${packages}"
+  package.install "${packages}"
 }
 
 function install-prerequisites.repositories {

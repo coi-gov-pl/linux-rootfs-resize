@@ -1,0 +1,34 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+Vagrant.configure('2') do |config|
+  config.vm.synced_folder '../', '/linux-rootfs-resize'
+  config.vm.provider 'virtualbox' do |vb|
+    # Customize the amount of memory on the VM:
+    vb.memory = '265'
+  end
+  config.vm.provision :shell,
+    inline: '/linux-rootfs-resize/install',
+    env: {
+      LRR_EXEC: ENV['LRR_EXEC'],
+      LRR_LOG_LEVEL: ENV['LRR_LOG_LEVEL']
+    }
+
+  config.vm.define :centos6 do |m|
+    m.vm.box = 'bento/centos-6.9'
+  end
+  config.vm.define :centos7 do |m|
+    m.vm.box = 'bento/centos-7.4'
+  end
+  config.vm.define :oracle6 do |m|
+    m.vm.box = 'bento/oracle-6.9'
+  end
+  config.vm.define :oracle7 do |m|
+    m.vm.box = 'bento/oracle-7.4'
+  end
+  config.vm.define :ubuntu14 do |m|
+    m.vm.box = 'bento/ubuntu-14.04'
+  end
+  config.vm.define :ubuntu16 do |m|
+    m.vm.box = 'bento/ubuntu-16.04'
+  end
+end

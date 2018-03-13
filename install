@@ -61,11 +61,6 @@ function copy-tools() {
   done <${inst_dir}/distro/${distro}/deps
 }
 
-function gziped-initrd() {
-  file ${initrd} | grep -q gzip
-  return $(expr 1 - $?)
-}
-
 function unpack-initrd() {
   # check format of current initrd and extract it
   if gziped-initrd; then
@@ -160,55 +155,6 @@ function grub-mod() {
       grubby --set-default ${kernelmod}
     ;;
   esac
-}
-
-function partition-type() {
-  LVM=0
-  # check if LVM tool lvs is present
-  which lvs 2>&1 >/dev/null
-  if [ $? -eq 0 ]; then
-    # check for logical volumes
-    if [[ "$(lvs --noheadings -o +lv_path)" != *No\ volume\ groups\ found* ]]; then
-      # get rootfs mount device
-      rootfs_device=$(mount |grep -o "^.* / " |awk '{print $1}')
-      # look for match, set LVM true if found
-      for lv_name in $(lvs --noheading |awk '{print $1}'); do
-        [[ "${rootfs_device}" == *${lv_name}* ]] && LVM=1
-      done
-    fi
-  fi
-  return ${LVM}
-}
-
-function get-distro() {
-if
-[ -f /etc/redhat-release ] && [ $(cat /etc/redhat-release | wc -w) -gt 0 ]; then
-  if [[ "$(cat /etc/redhat-release)" == Red*Hat*Linux*Server\ release\ 7* ]]; then
-	echo "centos-7"
-  elif [[ "$(cat /etc/redhat-release)" == *CentOS\ Linux\ release\ 7* ]]; then
-    echo "centos-7"
-  elif   [[ "$(cat /etc/redhat-release)" == *CentOS\ release\ 6* ]]; then
-    echo "centos-6"
-  else
-    echo "unknown"
-fi
-  elif
-[ -f /etc/issue ] && [ $(cat /etc/issue | wc -w) -gt 0 ]; then
-if
- [[ "$(cat /etc/issued)" == *Debian\ GNU\/Linux\ 8* ]]; then
-  	echo "debian-8"
-  elif [[ "$(cat /etc/issued)" == *Debian\ GNU\/Linux\ 7* ]]; then
-  	echo "debian-7"
-  elif [[ "$(cat /etc/issued)" == *Debian\ GNU\/Linux\ 6* ]]; then
-  	echo "debian-6"
-  elif [[ "$(cat /etc/issued)" == *Oracle\ Linux\ Server\ release\ 6* ]]; then
-  	echo "oracle-6"
-  else
-    echo "unknown"
-fi
-else
-	echo "Unknown"
-fi
 }
 
 function main() {
