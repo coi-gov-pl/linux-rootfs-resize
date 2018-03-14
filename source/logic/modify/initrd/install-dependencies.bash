@@ -59,9 +59,9 @@ function initrd.copy-required-libraries {
 
   if ! [[ "${libraries}-X" == '-X' ]]; then
     for file in ${libraries}; do
-      logger.debug "Processing library: ${file}"
       # is this file new?
-      if [ ! -f ${tempdir}${file} ]; then
+      if [ -f $file ] && [ ! -f ${tempdir}${file} ]; then
+        logger.debug "Processing library: ${file}"
         mkdir -p ${tempdir}$(dirname ${file})
         cp -v ${file} ${tempdir}${file}
       fi

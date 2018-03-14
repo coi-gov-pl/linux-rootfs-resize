@@ -19,57 +19,6 @@ include install-prerequisites.bash
 include modify-initrd.bash
 include modify-grub.bash
 
-function deps() {
-  for file in ${@}; do
-    # check if is a valid file
-    [ -f ${file} ] &&
-      # is this file new?
-      if [ ! -f /tmp/initrd${file} ]; then
-        mkdir -p /tmp/initrd$(dirname ${file})
-        cp -v ${file} /tmp/initrd${file}
-        if [ $? != 0 ]; then
-          # error, bug out
-          echo "Can't copy \"${file}\""
-          exit 1
-        fi
-      fi
-  done
-}
-
-function copy-tools() {
-  # install files listed in deps.lst
-  while read tool; do
-    IN=0
-    for bin_path in "${initrd_path}"; do
-      [[ -f ${bin_path}/${tool} ]] && IN=1
-    done
-    if [ ${IN} -eq 0 ]; then
-      # get tools path
-      toolpath=$(command -v ${tool})
-      if [ $? != 0 ]; then
-        # tool not installed, bug out
-        echo "\"${tool}\" not found! Please install"
-        exit 1
-      fi
-      # copy tool into initrd
-      cp -v ${toolpath} bin/${tool}
-      # install needed libraries
-      deps "($(ldd ${toolpath}))"
-    else
-      echo "${tool} present"
-    fi
-  done <${inst_dir}/distro/${distro}/deps
-}
-
-function unpack-initrd() {
-  # check format of current initrd and extract it
-  if gziped-initrd; then
-  	execute=$(gunzip -c ${initrd} | cpio -i --make-directories)
-  else
-  	execute=$(/usr/lib/dracut/skipcpio ${initrd} | gunzip -c | cpio -i)
-  fi
-}
-
 function repack-initrd() {
   find ./ | cpio -H newc -o > /tmp/initrd.cpio
   if gziped-initrd; then

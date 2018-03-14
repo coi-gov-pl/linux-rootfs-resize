@@ -59,3 +59,4 @@ function facter.legacy.get {
 include facter/os.bash
 include facter/kernel.bash
 include facter/partition-type.bash
+include facter/initrd-type.bash

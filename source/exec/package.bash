@@ -52,9 +52,9 @@ function package.apt.ensure-updated {
 
 function package.install.debian {
   local packages="$@"
-  package.apt.ensure-updated
   local tobeinstalled="$(package.filter-installed $packages)"
   if [[ "${tobeinstalled}-X" != '-X' ]]; then
+    package.apt.ensure-updated
     executor.stream "apt-get install -y ${tobeinstalled}"
   fi
 }
