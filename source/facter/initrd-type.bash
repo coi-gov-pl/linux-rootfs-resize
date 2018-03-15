@@ -10,7 +10,7 @@ function facter.resolve.initrd-type {
   local initrd_init_filetype="$(file $(readlink -f ${initrd_tempdir}/init))"
   local initrd_init_type
   logger.debug "Init file type: ${initrd_init_filetype}"
-  if echo "${initrd_init_filetype}" | grep -q 'ELF'; then
+  if echo "${initrd_init_filetype}" | grep -q 'GNU/Linux'; then
     initrd_init_type='systemd'
   else
     if [ -f "${initrd_tempdir}/scripts/local" ]; then

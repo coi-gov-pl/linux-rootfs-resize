@@ -9,10 +9,8 @@ function initrd.unpack {
 
   local initrd=$(facter.get initrd)
   local initrd_packaging=$(facter.get initrd_packaging)
-  local lvm=$(facter.get lvm)
   logger.debug "Initramfs image: ${COLOR_CYAN}${initrd}"
   logger.debug "Initramfs image archive type: ${COLOR_CYAN}${initrd_packaging}"
-  logger.debug "Does rootfs uses LVM: ${COLOR_CYAN}${lvm}"
 
   initrd.create-temp-dir
 

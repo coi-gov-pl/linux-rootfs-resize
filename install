@@ -8,11 +8,11 @@
 
 set -eo pipefail
 
-repodir="$( dirname "${BASH_SOURCE[0]}" )"
-source "${repodir}/source/loader.bash"
+REPODIR="$( dirname "${BASH_SOURCE[0]}" )"
+source "${REPODIR}/source/loader.bash"
 
 loader_flag "${BASH_SOURCE[0]}"
-loader_addpath "${repodir}/source"
+loader_addpath "${REPODIR}/source"
 
 include view.bash
 include install-prerequisites.bash

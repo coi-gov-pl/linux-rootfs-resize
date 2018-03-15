@@ -2,17 +2,16 @@ growroot()
 {
   set -e
   echo "[] linux-rootfs-resize ..."
-  lvm vgchange --sysinit -an
-  local lvm_lv_root=$(echo ${root} |sed "s/block://")
+  lvm vgchange -an
   lvm_pv_path=$(lvm pvs --noheadings |awk '{print $1}')
   lvm_pv_temp=$(echo ${lvm_pv_path}|sed "s/dev//g")
   lvm_pv_dev=$(echo ${lvm_pv_temp}| sed "s/[^a-z]//g")
   lvm_pv_part=$(echo ${lvm_pv_temp}| sed "s/[^0-9]//g")
+  echo "${lvm_pv_dev} ${lvm_pv_part}"
   growpart -v /dev/${lvm_pv_dev} ${lvm_pv_part}
-  partprobe -s /dev/${lvm_pv_dev}
   lvm pvresize -v ${lvm_pv_path}
   lvm vgchange --sysinit -ay
-  lvm lvextend -v -l +100%FREE ${lvm_lv_root}
-  e2fsck -p -f ${lvm_lv_root}
-  resize2fs -p ${lvm_lv_root}
+  lvm lvresize -v -l +100%FREE ${ROOT}
+  e2fsck -p -f ${ROOT}
+  resize2fs -p ${ROOT}
 }
