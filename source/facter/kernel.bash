@@ -15,7 +15,7 @@ function facter.resolve.kernel {
     initrd="/boot/initrd.img-$(uname -r)"
   fi
   facter.set initrd "${initrd}"
-  facter.set vmlinuz "/boot/vmlinuz-$(uname -r)"
+  facter.set kernel "/boot/vmlinuz-$(uname -r)"
   facter.set kernel_version "$(uname -r)"
   facter.resolve.initrd-packaging
 }

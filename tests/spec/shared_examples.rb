@@ -13,7 +13,7 @@ RSpec.shared_examples 'fully working linux-rootfs-resize script' do |context|
       it { expect{ cf.up }.not_to raise_error }
     end
     # 2. run install script
-    xdescribe 'running ./install script on VM' do
+    describe 'running ./install script on VM' do
       subject { cf.run('LRR_LOG_LEVEL=DEBUG /centrifuge/install') }
       its(:retcode) { is_expected.to eq 0 }
     end

@@ -7,18 +7,18 @@ include exec/executor.bash
 
 function initrd.install-dependencies {
   logger.info ">> Installing tools to Initramfs image"
-  local tools
-  tools='growpart sfdisk e2fsck resize2fs sed awk'
-  local osfamily
+  local tools osfamily lvm
+
+  tools='growpart sfdisk e2fsck resize2fs sed awk parted'
   osfamily=$(facter.get osfamily)
-  case $osfamily in
-    RedHat)
-      tools="${tools} partprobe"
-      ;;
-    Debian)
+  lvm=$(facter.get lvm)
+  if [[ $osfamily == 'RedHat' ]]; then
+    if [[ $lvm == 'yes'  ]]; then
+      tools="${tools} partx partprobe"
+    else
       tools="${tools} partx"
-      ;;
-  esac
+    fi
+  fi
   logger.debug "Tools to be installed: ${tools}"
   local tempdir
   tempdir=$(facter.get initrd_tempdir)

@@ -4,7 +4,7 @@
 # by Stanislav Petr, glux@glux.org
 # by Krzysztof Suszynski, krzysztof.suszynski@coi.gov.pl
 #
-# depends on: cloud-utils
+# depends on: parted cloud-utils
 
 set -eo pipefail
 
@@ -19,130 +19,12 @@ include install-prerequisites.bash
 include modify-initrd.bash
 include modify-grub.bash
 
-function grub-mod() {
-  kernelmod=${kernel%-*}mod-${kernel##*-}
-  case ${1} in
-    "grub1")
-      # clean existing mod
-      grubby -o ${grub_config} --grub --remove-kernel=${kernelmod}
-      # create new mod
-      # copy kernel
-      [ ! -f ${kernelmod} ] && cp ${kernel} ${kernelmod}
-      # grub title
-      grub_title="$(cat /etc/redhat-release) $(uname -r)mod"
-      # grub kernel (softlink)
-      grub_kernel=${kernelmod}
-      # modified initrd
-      grub_initrd=${initrd%-*}mod-${initrd##*-}
-      # modify grub config
-      grubby -o ${grub_config} --grub --copy-default --add-kernel="${grub_kernel}" \
-        --title="${grub_title}" --initrd="${grub_initrd}" --make-default
-    ;;
-    "grub2")
-      # copy kernel
-      [ ! -f ${kernelmod} ] && cp ${kernel} ${kernelmod}
-      # generate new grub2 config
-      if [ -f /usr/sbin/grub2-mkconfig ]; then
-        grub2-mkconfig -o ${grub_config}
-      elif [ -f /usr/sbin/grub-mkconfig ]; then
-        grub-mkconfig -o ${grub_config}
-      fi
-      # set default
-      grubby --set-default ${kernelmod}
-    ;;
-  esac
-}
-
-function main() {
-  # store directory from where we run install
-  inst_dir=$(pwd)
-
-  # set common variables
-  partition-type
-  [ $? -eq 1 ] && mod_type="mod_lvm" || mod_type="mod"
-
-  # check distro and set distro specific variables
-  distro=$(get-distro)
-
-  # RedHat derivate
-  if [ ${distro} == "centos-7" ]; then
-      initrd_path="bin sbin usr/bin usr/sbin"
-      kernel_version=$(uname -r)
-      initrd=$(ls -1 -t /boot/initramfs-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
-      kernel=$(ls -1 -t /boot/vmlinuz-* | grep -v -P "(mod|rescue|kdump)" | head -n 1)
-      init_script="init"
-      proc_insert_point="^export PATH=.*"
-      proc_name="growroot"
-      call_insert_point="^source_all pre-mount"
-      grub_config="/boot/grub2/grub.cfg"
-      grub="grub2"
-  elif [ ${distro} == "centos-6" ]; then
-      initrd_path="bin sbin usr/bin usr/sbin"
-      kernel_version=$(uname -r)
-      initrd=$(ls -1 -t /boot/initramfs-* -1 | grep -v mod | head -n 1)
-      kernel=$(ls -1 -t /boot/vmlinuz-* -1 | grep -v mod | head -n 1)
-      init_script="init"
-      proc_insert_point="^export PATH=.*"
-      proc_name="growroot"
-      call_insert_point="^source_all pre-mount"
-      grub_config="/boot/grub/grub.conf"
-      grub="grub1"
-  elif [ ${distro} == "debian-8" ]; then
-      initrd_path="bin sbin"
-      initrd="/boot/initrd.img-$(uname -r)"
-      kernel="/boot/vmlinuz-$(uname -r)"
-      init_script="scripts/local"
-      proc_insert_point="^mountroot()"
-      proc_name="\        growroot"
-      call_insert_point="^.*local_premount$"
-      grub_config="/boot/grub/grub.cfg"
-      grub="grub2"
-  elif [ ${distro} == "debian-7" ]; then
-      initrd_path="bin sbin"
-      initrd="/boot/initrd.img-$(uname -r)"
-      kernel="/boot/vmlinuz-$(uname -r)"
-      init_script="scripts/local"
-      proc_insert_point="^mountroot()"
-      proc_name="\        growroot"
-      call_insert_point="^.*pre_mountroot$"
-      grub_config="/boot/grub/grub.cfg"
-      grub="grub2"
-  elif [ ${distro} == "debian-6" ]; then
-      initrd_path="bin sbin"
-      initrd="/boot/initrd.img-$(uname -r)"
-      kernel="/boot/vmlinuz-$(uname -r)"
-      init_script="scripts/local"
-      proc_insert_point="^mountroot()"
-      proc_name="\        growroot"
-      call_insert_point="^.*pre_mountroot$"
-      grub_config="/boot/grub/grub.cfg"
-      grub="grub2"
-  elif [ ${distro} == "oracle-6" ]; then
-      initrd_path="bin sbin usr/bin usr/sbin"
-      initrd="/boot/initramfs-$(uname -r).img"
-      kernel="/boot/vmlinuz-$(uname -r)"
-      init_script="init"
-      proc_insert_point="^export PATH=.*"
-      proc_name="growroot"
-      call_insert_point="^source_all pre-mount"
-      grub_config="/boot/grub/grub.conf"
-      grub="grub1"
-  elif [ ${distro} == "unknown" ]; then
-      echo "Distribution NOT supported!"
-  else
-    	echo "Distribution NOT supported!"
-  exit 1
-  fi
-}
-
 loader_finish
 
 view.welcome
-
 install-prerequisites
 modify-initrd
 modify-grub
-
 view.farewell
 
 exit 0
