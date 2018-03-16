@@ -7,9 +7,7 @@ function executor.stream {
   logger.debug "Executing command: ${command}"
   if [ "${LRR_EXEC:-1}" -ne 0 ]; then
     eval $command
-    local ret=$?
   fi
-  return $ret
 }
 
 function executor.capture {
@@ -19,8 +17,10 @@ function executor.capture {
     local output
     local tmpscript=$(mktemp -t exec-XXXXXX.sh)
     echo "${command}" > ${tmpscript}
+    set +e
     output=`bash ${tmpscript} 2>&1`
     local ret=$?
+    set -e
     rm -rf ${tmpscript}
   fi
   echo "${output}"
@@ -29,8 +29,11 @@ function executor.capture {
 
 function executor.silently {
   local command="$@"
-  local output=$(executor.capture ${command})
+  local output
+  set +e
+  output=$(executor.capture ${command})
   local ret=$?
+  set -e
   if [ $ret -eq 0 ]; then
     logger.debug "${output}"
   else
