@@ -4,9 +4,12 @@ include logger.bash
 include facter.bash
 
 function validate-os {
-  local osfamily=$(facter.get 'osfamily')
-  local operatingsystem=$(facter.get 'operatingsystem')
-  local operatingsystemmajrelease=$(facter.get 'operatingsystemmajrelease')
+  local osfamily
+  osfamily=$(facter.get 'osfamily')
+  local operatingsystem
+  operatingsystem=$(facter.get 'operatingsystem')
+  local operatingsystemmajrelease
+  operatingsystemmajrelease=$(facter.get 'operatingsystemmajrelease')
 
   if [[ $osfamily == 'RedHat' ]] && [ $operatingsystemmajrelease -lt 6 ]; then
     logger.error "Unsupported OS - ${operatingsystem} ${operatingsystemmajrelease}. Red Hat family is supported from version 6."

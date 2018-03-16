@@ -7,13 +7,21 @@ include exec/executor.bash
 function initrd.repack {
   logger.info ">> Repacking Initramfs image"
 
-  local initrd_tempdir=$(facter.get initrd_tempdir)
-  local cpio_tempfile=$(mktemp -t initrd-XXXXXX.cpio)
-  local initrd_packaging=$(facter.get initrd_packaging)
-  local initrd=$(facter.get initrd)
-  local initrd_basename=$(basename $initrd)
-  local initrd_dirname=$(dirname $initrd)
-  local initrd_growroot="${initrd_dirname}/growroot-${initrd_basename}"
+  local initrd_tempdir
+
+  initrd_tempdir=$(facter.get initrd_tempdir)
+  local cpio_tempfile
+  cpio_tempfile=$(mktemp -t initrd-XXXXXX.cpio)
+  local initrd_packaging
+  initrd_packaging=$(facter.get initrd_packaging)
+  local initrd
+  initrd=$(facter.get initrd)
+  local initrd_basename
+  initrd_basename=$(basename $initrd)
+  local initrd_dirname
+  initrd_dirname=$(dirname $initrd)
+  local initrd_growroot
+  initrd_growroot="${initrd_dirname}/growroot-${initrd_basename}"
 
   facter.set initrd_growroot ${initrd_growroot}
 
@@ -34,15 +42,19 @@ function initrd.repack {
 }
 
 function initrd.repack.gzip {
-  local initrd_growroot="$1"
-  local cpio_tempfile="$2"
+  local initrd_growroot
+  initrd_growroot="$1"
+  local cpio_tempfile
+  cpio_tempfile="$2"
 
   executor.silently "gzip -c ${cpio_tempfile} > ${initrd_growroot}"
 }
 
 function initrd.repack.cpio {
-  local initrd_growroot="$1"
-  local cpio_tempfile="$2"
+  local initrd_growroot
+  initrd_growroot="$1"
+  local cpio_tempfile
+  cpio_tempfile="$2"
 
   executor.silently "cp -v ${cpio_tempfile} ${initrd_growroot}"
 }

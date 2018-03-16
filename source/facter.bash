@@ -24,16 +24,21 @@ function facter.get {
 }
 
 function facter.modern.set {
-  local key="$1"
-  local value="$2"
+  local key
+  key="$1"
+  local value
+  value="$2"
   __facter_facts[$key]="${value}"
 }
 
 function facter.modern.get {
-  local key="$1"
-  local value=${__facter_facts[$key]}
+  local key
+  key="$1"
+  local value
+  value=${__facter_facts[$key]}
   if [[ "${value}-X" == "-X" ]]; then
-    logger.warn "Fact ${key} is not known!"
+    logger.error "Fact ${key} is not known!"
+    exit 166
   fi
   echo "${value}"
 }
@@ -42,16 +47,21 @@ function facter.legacy.set {
   local key="$1"
   local value="$2"
 
-  eval "export __facter_facts_${key}='${value}'"
+  eval "export __facter_facts_${key} && __facter_facts_${key}='${value}'"
 }
 
 function facter.legacy.get {
-  local key="$1"
-  local fact_value_name="__facter_facts_${key}"
+  local key
+  key="$1"
+  local fact_value_name
+  fact_value_name="__facter_facts_${key}"
 
-  local value="${!fact_value_name}"
+  local value
+
+  value="${!fact_value_name}"
   if [[ "${value}-X" == "-X" ]]; then
-    logger.warn "Fact ${key} is not known!"
+    logger.error "Fact ${key} is not known!"
+    exit 166
   fi
   echo "${value}"
 }

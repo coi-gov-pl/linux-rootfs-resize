@@ -4,8 +4,10 @@ include facter.bash
 include facter/os.bash
 
 function facter.resolve.kernel {
-  local osfamily=$(facter.get 'osfamily')
-  local operatingsystemmajrelease=$(facter.get 'operatingsystemmajrelease')
+  local osfamily
+  osfamily=$(facter.get 'osfamily')
+  local operatingsystemmajrelease
+  operatingsystemmajrelease=$(facter.get 'operatingsystemmajrelease')
   local initrd
   if [[ $osfamily == 'RedHat' ]]; then
     initrd="/boot/initramfs-$(uname -r).img"
@@ -19,9 +21,12 @@ function facter.resolve.kernel {
 }
 
 function facter.resolve.initrd-packaging {
-  local initrd=$(facter.get initrd)
-  local initrd_packaging=unknown
-  local fdesc=$(file ${initrd})
+  local initrd
+  initrd=$(facter.get initrd)
+  local initrd_packaging
+  initrd_packaging=unknown
+  local fdesc
+  fdesc=$(file ${initrd})
   if echo "${fdesc}" | grep -q gzip; then
     initrd_packaging=gzip
   elif echo "${fdesc}" | grep -q cpio; then

@@ -7,18 +7,20 @@ include exec/executor.bash
 function initrd.modify-init {
   logger.info ">> Modifing init stript in Initramfs image"
 
-  local lvm=$(facter.get lvm)
-  local osfamily=$(facter.get osfamily)
-  local initrd_init_type=$(facter.get initrd_init_type)
+  local lvm osfamily initrd_init_type osfamily_lcase classifier sourcefile
+
+  lvm=$(facter.get lvm)
+  osfamily=$(facter.get osfamily)
+  initrd_init_type=$(facter.get initrd_init_type)
   logger.info "Initramfs init type: ${COLOR_CYAN}${initrd_init_type}"
   logger.info "Does rootfs uses LVM: ${COLOR_CYAN}${lvm}"
 
-  local osfamily_lcase="${osfamily,,}"
-  local classifier=''
+  osfamily_lcase="${osfamily,,}"
+  classifier=''
   if [[ $lvm == 'yes' ]]; then
     classifier="$classifier-lvm"
   fi
-  local sourcefile="${REPODIR}/source/logic/growroot/${osfamily_lcase}/growroot${classifier}.sh"
+  sourcefile="${REPODIR}/source/logic/growroot/${osfamily_lcase}/growroot${classifier}.sh"
 
   case $initrd_init_type in
     systemd)
@@ -36,12 +38,18 @@ function initrd.modify-init {
 }
 
 function initrd.modify-init.systemd {
-  local initrd_tempdir=$(facter.get initrd_tempdir)
-  local sourcefile="$1"
-  local targethook="${initrd_tempdir}/lib/dracut/hooks/pre-mount/growroot.sh"
-  local shebang="${REPODIR}/source/logic/growroot/shebang.sh"
-  local invoke="${REPODIR}/source/logic/growroot/invoke.sh"
-  local scripts=(
+  local initrd_tempdir
+  initrd_tempdir=$(facter.get initrd_tempdir)
+  local sourcefile
+  sourcefile="$1"
+  local targethook
+  targethook="${initrd_tempdir}/lib/dracut/hooks/pre-mount/growroot.sh"
+  local shebang
+  shebang="${REPODIR}/source/logic/growroot/shebang.sh"
+  local invoke
+  invoke="${REPODIR}/source/logic/growroot/invoke.sh"
+  local scripts
+  scripts=(
     '/tmp/growroot-shebang.sh'
     '/tmp/growroot-function.sh'
     '/tmp/growroot-invoke.sh'
@@ -58,31 +66,46 @@ function initrd.modify-init.systemd {
 }
 
 function initrd.modify-init.systemv-plain-init {
-  local initrd_tempdir=$(facter.get initrd_tempdir)
-  local init_script="${initrd_tempdir}/init"
-  local sourcefile="$1"
-  local proc_insert_point='^export PATH=.*'
-  local call_insert_point='^source_all pre-mount'
+  local initrd_tempdir
+  initrd_tempdir=$(facter.get initrd_tempdir)
+  local init_script
+  init_script="${initrd_tempdir}/init"
+  local sourcefile
+  sourcefile="$1"
+  local proc_insert_point
+  proc_insert_point='^export PATH=.*'
+  local call_insert_point
+  call_insert_point='^source_all pre-mount'
 
   initrd.modify-init.systemv "${init_script}" "${sourcefile}" "${proc_insert_point}" "${call_insert_point}"
 }
 
 function initrd.modify-init.systemv-scripts-local {
-  local initrd_tempdir=$(facter.get initrd_tempdir)
-  local init_script="${initrd_tempdir}/scripts/local"
-  local sourcefile="$1"
-  local proc_insert_point='^mountroot()'
-  local call_insert_point='^.*\(pre_mountroot\|local_mount_root\)$'
+  local initrd_tempdir
+  initrd_tempdir=$(facter.get initrd_tempdir)
+  local init_script
+  init_script="${initrd_tempdir}/scripts/local"
+  local sourcefile
+  sourcefile="$1"
+  local proc_insert_point
+  proc_insert_point='^mountroot()'
+  local call_insert_point
+  call_insert_point='^.*\(pre_mountroot\|local_mount_root\)$'
 
   initrd.modify-init.systemv "${init_script}" "${sourcefile}" "${proc_insert_point}" "${call_insert_point}"
 }
 
 function initrd.modify-init.systemv {
-  local procname='growroot'
-  local init_script="$1"
-  local sourcefile="$2"
-  local proc_insert_point="$3"
-  local call_insert_point="$4"
+  local procname
+  procname='growroot'
+  local init_script
+  init_script="$1"
+  local sourcefile
+  sourcefile="$2"
+  local proc_insert_point
+  proc_insert_point="$3"
+  local call_insert_point
+  call_insert_point="$4"
 
   initrd.modify-init.systemv-prerequisites
   if ! grep -qE "^${procname}\(\)$" "${init_script}"; then
@@ -118,8 +141,10 @@ function initrd.modify-init.systemv {
 }
 
 function initrd.modify-init.systemv-prerequisites {
-  local lvm=$(facter.get lvm)
-  local initrd_tempdir=$(facter.get initrd_tempdir)
+  local lvm
+  lvm=$(facter.get lvm)
+  local initrd_tempdir
+  initrd_tempdir=$(facter.get initrd_tempdir)
   executor.silently 'touch etc/mtab'
   if [ "${lvm}" == "yes" ]; then
     executor.silently "sed -i 's/locking_type = 4/locking_type = 1/' ${initrd_tempdir}/etc/lvm/lvm.conf"

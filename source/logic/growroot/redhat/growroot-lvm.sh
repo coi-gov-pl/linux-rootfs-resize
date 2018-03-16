@@ -4,11 +4,16 @@ growroot()
   echo "[] linux-rootfs-resize ..."
   set -x
   lvm vgchange --sysinit -an
-  local lvm_lv_root=$(echo ${root} |sed "s/block://")
-  local lvm_pv_path=$(lvm pvs --noheadings |awk '{print $1}')
-  local lvm_pv_temp=$(echo ${lvm_pv_path}|sed "s/dev//g")
-  local lvm_pv_dev=$(echo ${lvm_pv_temp}| sed "s/[^a-z]//g")
-  local lvm_pv_part=$(echo ${lvm_pv_temp}| sed "s/[^0-9]//g")
+  local lvm_lv_root
+  lvm_lv_root=$(echo ${root} |sed "s/block://")
+  local lvm_pv_path
+  lvm_pv_path=$(lvm pvs --noheadings |awk '{print $1}')
+  local lvm_pv_temp
+  lvm_pv_temp=$(echo ${lvm_pv_path}|sed "s/dev//g")
+  local lvm_pv_dev
+  lvm_pv_dev=$(echo ${lvm_pv_temp}| sed "s/[^a-z]//g")
+  local lvm_pv_part
+  lvm_pv_part=$(echo ${lvm_pv_temp}| sed "s/[^0-9]//g")
 
   growpart -v /dev/${lvm_pv_dev} ${lvm_pv_part}
   partprobe -s /dev/${lvm_pv_dev}

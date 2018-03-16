@@ -14,7 +14,8 @@ function facter.os.resolve {
     logger.error 'Unsupported OS Family. Supported families are: RedHat and Debian'
     exit 5
   fi
-  local major=$(facter.get 'operatingsystemrelease' | cut -d '.' -f 1)
+  local major
+  major=$(facter.get 'operatingsystemrelease' | cut -d '.' -f 1)
   facter.set 'operatingsystemmajrelease' $major
 }
 
@@ -31,7 +32,8 @@ function facter.os.debian.resolve {
 
 function facter.os.redhat.resolve {
   # https://regex101.com/r/Uvm9bs/3
-  local RHEL_SED_VERSION_PARSE='s/^[^0-9]+([0-9]+(\.[0-9]+)?).*$/\1/'
+  local RHEL_SED_VERSION_PARSE
+  RHEL_SED_VERSION_PARSE='s/^[^0-9]+([0-9]+(\.[0-9]+)?).*$/\1/'
   local version
   if [ -f /etc/oracle-release ]; then
     facter.set 'operatingsystem' 'OracleLinux'

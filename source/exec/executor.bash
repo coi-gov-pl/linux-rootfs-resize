@@ -3,7 +3,8 @@
 include logger.bash
 
 function executor.stream {
-  local command="$@"
+  local command
+  command="$@"
   logger.debug "Executing command: ${command}"
   if [ "${LRR_EXEC:-1}" -ne 0 ]; then
     eval $command
@@ -11,15 +12,18 @@ function executor.stream {
 }
 
 function executor.capture {
-  local command="$@"
+  local command
+  command="$@"
   logger.debug "Executing command: ${command}"
   if [ "${LRR_EXEC:-1}" -ne 0 ]; then
     local output
-    local tmpscript=$(mktemp -t exec-XXXXXX.sh)
+    local tmpscript
+    tmpscript=$(mktemp -t exec-XXXXXX.sh)
     echo "${command}" > ${tmpscript}
     set +e
     output=`bash ${tmpscript} 2>&1`
-    local ret=$?
+    local ret
+    ret=$?
     set -e
     rm -rf ${tmpscript}
   fi
@@ -28,11 +32,13 @@ function executor.capture {
 }
 
 function executor.silently {
-  local command="$@"
+  local command
+  command="$@"
   local output
   set +e
   output=$(executor.capture ${command})
-  local ret=$?
+  local ret
+  ret=$?
   set -e
   if [ $ret -eq 0 ]; then
     logger.debug "${output}"

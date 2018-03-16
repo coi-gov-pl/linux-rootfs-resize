@@ -7,8 +7,11 @@ LRR_CLEANUP=${LRR_CLEANUP:-yes}
 function initrd.unpack {
   logger.info ">> Unpacking Initramfs image to temporary folder"
 
-  local initrd=$(facter.get initrd)
-  local initrd_packaging=$(facter.get initrd_packaging)
+  local initrd
+
+  initrd=$(facter.get initrd)
+  local initrd_packaging
+  initrd_packaging=$(facter.get initrd_packaging)
   logger.debug "Initramfs image: ${COLOR_CYAN}${initrd}"
   logger.debug "Initramfs image archive type: ${COLOR_CYAN}${initrd_packaging}"
 
@@ -36,26 +39,32 @@ function initrd.create-temp-dir {
 }
 
 function initrd.remove-temp-dir {
-  local tempdir=$(facter.get initrd_tempdir)
+  local tempdir
+  tempdir=$(facter.get initrd_tempdir)
   logger.debug "Removing temp dir: ${tempdir}"
   rm -rf ${tempdir}
   facter.set initrd_unpacked no
 }
 
 function initrd.unpack.gziped {
-  local tempdir=$(facter.get initrd_tempdir)
+  local tempdir
+  tempdir=$(facter.get initrd_tempdir)
   logger.info '>>> Unpacking gziped Initramfs'
-  local loc=$(pwd)
+  local loc
+  loc=$(pwd)
   cd $tempdir
   executor.silently "gunzip -c ${initrd} | cpio -i --make-directories"
   cd $loc
 }
 
 function initrd.unpack.cpio {
-  local tempdir=$(facter.get initrd_tempdir)
+  local tempdir
+  tempdir=$(facter.get initrd_tempdir)
   logger.info '>>> Unpacking CPIO Initramfs'
 
-  local loc=$(pwd)
+  local loc
+
+  loc=$(pwd)
   cd $tempdir
   executor.silently "/usr/lib/dracut/skipcpio ${initrd} | gunzip -c | cpio -i"
   cd $loc
