@@ -53,6 +53,8 @@ function initrd.modify-init.systemd {
 
   executor.stream "cat ${scripts[@]} > ${targethook}"
   executor.stream "chmod +x ${targethook}"
+
+  logger.info "Creaded Dracut pre-mount hook: ${COLOR_CYAN}${targethook}"
 }
 
 function initrd.modify-init.systemv-plain-init {
@@ -111,6 +113,8 @@ function initrd.modify-init.systemv {
   else
     logger.debug "Function invokation '${procname}' already present in init file ${init_script}"
   fi
+
+  logger.info "Successfully patched Initramfs init script, by adding growroot procedure: ${COLOR_CYAN}${init_script}"
 }
 
 function initrd.modify-init.systemv-prerequisites {
