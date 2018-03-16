@@ -6,7 +6,6 @@ include facter/os.bash
 function facter.resolve.kernel {
   local osfamily=$(facter.get 'osfamily')
   local operatingsystemmajrelease=$(facter.get 'operatingsystemmajrelease')
-  local grub_package_name
   local initrd
   if [[ $osfamily == 'RedHat' ]]; then
     initrd="/boot/initramfs-$(uname -r).img"
@@ -16,11 +15,6 @@ function facter.resolve.kernel {
   facter.set initrd "${initrd}"
   facter.set vmlinuz "/boot/vmlinuz-$(uname -r)"
   facter.set kernel_version "$(uname -r)"
-  if [[ $osfamily == 'RedHat' ]] && [[ $operatingsystemmajrelease == 6 ]]; then
-    facter.set grub_version 1
-  else
-    facter.set grub_version 2
-  fi
   facter.resolve.initrd-packaging
 }
 

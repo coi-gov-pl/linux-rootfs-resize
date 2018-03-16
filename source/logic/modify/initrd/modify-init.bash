@@ -47,12 +47,12 @@ function initrd.modify-init.systemd {
     '/tmp/growroot-invoke.sh'
   )
 
-  executor.stream "cp -v ${shebang} /tmp/growroot-shebang.sh"
-  executor.stream "cp -v ${sourcefile} /tmp/growroot-function.sh"
-  executor.stream "cp -v ${invoke} /tmp/growroot-invoke.sh"
+  executor.silently "cp -v ${shebang} /tmp/growroot-shebang.sh"
+  executor.silently "cp -v ${sourcefile} /tmp/growroot-function.sh"
+  executor.silently "cp -v ${invoke} /tmp/growroot-invoke.sh"
 
-  executor.stream "cat ${scripts[@]} > ${targethook}"
-  executor.stream "chmod +x ${targethook}"
+  executor.silently "cat ${scripts[@]} > ${targethook}"
+  executor.silently "chmod +x ${targethook}"
 
   logger.info "Creaded Dracut pre-mount hook: ${COLOR_CYAN}${targethook}"
 }
@@ -90,12 +90,12 @@ function initrd.modify-init.systemv {
       logger.error "Function insert point: '${proc_insert_point}' is not found in init script: ${init_script}"
       exit 24
     fi
-    executor.stream "sed -i.1 -e '/${proc_insert_point}/r ${sourcefile}' -e '//N' ${init_script}"
+    executor.silently "sed -i.1 -e '/${proc_insert_point}/r ${sourcefile}' -e '//N' ${init_script}"
     if diff "${init_script}.1" "${init_script}" >/dev/null; then
       logger.error "There must be error, init is not modified!"
       exit 25
     fi
-    executor.stream "rm -f '${init_script}.1'"
+    executor.silently "rm -fv '${init_script}.1'"
   else
     logger.debug "Function '${procname}' already present in init file ${init_script}"
   fi
@@ -104,12 +104,12 @@ function initrd.modify-init.systemv {
       logger.error "Function invokation insert point: '${call_insert_point}' is not found in init script: ${init_script}"
       exit 24
     fi
-    executor.stream "sed -i.2 '/${call_insert_point}/i ${procname}' ${init_script}"
+    executor.silently "sed -i.2 '/${call_insert_point}/i ${procname}' ${init_script}"
     if diff "${init_script}.2" "${init_script}" >/dev/null; then
       logger.error "There must be error, init is not modified!"
       exit 25
     fi
-    executor.stream "rm -f '${init_script}.2'"
+    executor.silently "rm -fv '${init_script}.2'"
   else
     logger.debug "Function invokation '${procname}' already present in init file ${init_script}"
   fi
@@ -120,8 +120,8 @@ function initrd.modify-init.systemv {
 function initrd.modify-init.systemv-prerequisites {
   local lvm=$(facter.get lvm)
   local initrd_tempdir=$(facter.get initrd_tempdir)
-  executor.stream 'touch etc/mtab'
+  executor.silently 'touch etc/mtab'
   if [ "${lvm}" == "yes" ]; then
-    executor.stream "sed -i 's/locking_type = 4/locking_type = 1/' ${initrd_tempdir}/etc/lvm/lvm.conf"
+    executor.silently "sed -i 's/locking_type = 4/locking_type = 1/' ${initrd_tempdir}/etc/lvm/lvm.conf"
   fi
 }

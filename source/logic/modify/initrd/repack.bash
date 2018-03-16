@@ -17,9 +17,9 @@ function initrd.repack {
 
   facter.set initrd_growroot ${initrd_growroot}
 
-  executor.stream "rm -rfv ${cpio_tempfile}"
+  executor.silently "rm -rfv ${cpio_tempfile}"
   pushd $initrd_tempdir >/dev/null 2>&1
-  executor.stream "find ./ | cpio -H newc -o > ${cpio_tempfile}"
+  executor.silently "find ./ | cpio -H newc -o > ${cpio_tempfile}"
   popd >/dev/null 2>&1
 
   if [[ $initrd_packaging == 'gzip' ]]; then
@@ -28,7 +28,7 @@ function initrd.repack {
     initrd.repack.cpio "${initrd_growroot}" "${cpio_tempfile}"
   fi
 
-  executor.stream "rm -rfv ${cpio_tempfile}"
+  executor.silently "rm -rfv ${cpio_tempfile}"
 
   logger.info "Modified Initramfs image: ${COLOR_CYAN}${initrd_growroot}"
 }
@@ -37,12 +37,12 @@ function initrd.repack.gzip {
   local initrd_growroot="$1"
   local cpio_tempfile="$2"
 
-  executor.stream "gzip -c ${cpio_tempfile} > ${initrd_growroot}"
+  executor.silently "gzip -c ${cpio_tempfile} > ${initrd_growroot}"
 }
 
 function initrd.repack.cpio {
   local initrd_growroot="$1"
   local cpio_tempfile="$2"
 
-  executor.stream "cp -v ${cpio_tempfile} ${initrd_growroot}"
+  executor.silently "cp -v ${cpio_tempfile} ${initrd_growroot}"
 }

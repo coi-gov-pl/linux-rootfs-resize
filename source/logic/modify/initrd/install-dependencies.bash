@@ -3,6 +3,7 @@
 include logger.bash
 include facter.bash
 include exec/package.bash
+include exec/executor.bash
 
 function initrd.install-dependencies {
   logger.info ">> Installing tools to Initramfs image"
@@ -42,7 +43,7 @@ function initrd.copy-tool {
     toolpath=$(command -v ${tool})
     # copy tool into initrd
     logger.info "Installing ${toolpath} into Initramfs image"
-    cp -v ${toolpath} ${tempdir}/bin/${tool}
+    logger.debug $(executor.capture "cp -v ${toolpath} ${tempdir}/bin/${tool}")
     # install needed libraries
     initrd.copy-required-libraries ${toolpath}
   else
@@ -63,7 +64,7 @@ function initrd.copy-required-libraries {
       if [ -f $file ] && [ ! -f ${tempdir}${file} ]; then
         logger.debug "Processing library: ${file}"
         mkdir -p ${tempdir}$(dirname ${file})
-        cp -v ${file} ${tempdir}${file}
+        executor.silently "cp -v ${file} ${tempdir}${file}"
       fi
     done
   fi

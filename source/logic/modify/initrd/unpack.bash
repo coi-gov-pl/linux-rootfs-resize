@@ -45,14 +45,18 @@ function initrd.remove-temp-dir {
 function initrd.unpack.gziped {
   local tempdir=$(facter.get initrd_tempdir)
   logger.info '>>> Unpacking gziped Initramfs'
+  local loc=$(pwd)
   cd $tempdir
-  executor.stream "gunzip -c ${initrd} | cpio -i --make-directories"
+  executor.silently "gunzip -c ${initrd} | cpio -i --make-directories"
+  cd $loc
 }
 
 function initrd.unpack.cpio {
   local tempdir=$(facter.get initrd_tempdir)
   logger.info '>>> Unpacking CPIO Initramfs'
 
+  local loc=$(pwd)
   cd $tempdir
-  executor.stream "/usr/lib/dracut/skipcpio ${initrd} | gunzip -c | cpio -i"
+  executor.silently "/usr/lib/dracut/skipcpio ${initrd} | gunzip -c | cpio -i"
+  cd $loc
 }
