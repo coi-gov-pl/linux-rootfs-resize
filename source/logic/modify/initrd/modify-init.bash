@@ -38,8 +38,21 @@ function initrd.modify-init {
 function initrd.modify-init.systemd {
   local initrd_tempdir=$(facter.get initrd_tempdir)
   local sourcefile="$1"
-  logger.error 'SystemD - Not yet implemented'
-  exit 99
+  local targethook="${initrd_tempdir}/lib/dracut/hooks/pre-mount/growroot.sh"
+  local shebang="${REPODIR}/source/logic/growroot/shebang.sh"
+  local invoke="${REPODIR}/source/logic/growroot/invoke.sh"
+  local scripts=(
+    '/tmp/growroot-shebang.sh'
+    '/tmp/growroot-function.sh'
+    '/tmp/growroot-invoke.sh'
+  )
+
+  executor.stream "cp -v ${shebang} /tmp/growroot-shebang.sh"
+  executor.stream "cp -v ${sourcefile} /tmp/growroot-function.sh"
+  executor.stream "cp -v ${invoke} /tmp/growroot-invoke.sh"
+
+  executor.stream "cat ${scripts[@]} > ${targethook}"
+  executor.stream "chmod +x ${targethook}"
 }
 
 function initrd.modify-init.systemv-plain-init {
