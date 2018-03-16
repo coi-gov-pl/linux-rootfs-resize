@@ -6,7 +6,7 @@ include facter.bash
 function modify-grub {
   logger.info '==> Modifing GRUB'
 
-  local grub_version osfamily osfamily_lcase
+  local grub_version osfamily osfamily_lcase grub_config
 
   grub_version=$(facter.get grub_version)
   osfamily=$(facter.get osfamily)
@@ -14,10 +14,13 @@ function modify-grub {
 
   logger.info "Grub version: ${COLOR_CYAN}${grub_version}"
 
+  grub_config=$(facter.get grub_config)
+  logger.info "Grub config: ${COLOR_CYAN}${grub_config}"
+
   if [[ $grub_version == '2' ]]; then
-    modify-grub.modern.${osfamily_lcase}
+    modify-grub.modern.${osfamily_lcase} ${grub_config}
   else
-    modify-grub.legacy.${osfamily_lcase}
+    modify-grub.legacy.${osfamily_lcase} ${grub_config}
   fi
 }
 

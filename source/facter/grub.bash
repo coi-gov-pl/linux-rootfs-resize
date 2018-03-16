@@ -5,7 +5,9 @@ include lang/version.bash
 
 function facter.resolve.grub {
   local grub_version
-  if ! command -v grub2-install; then
+  if command -v grub2-install > /dev/null; then
+    grub_version=2
+  else
     local grub_version_plain
     grub_version_plain=$(grub-install --version)
     # https://regex101.com/r/pCr7wE/3
@@ -16,10 +18,24 @@ function facter.resolve.grub {
     else
       grub_version=1
     fi
-  else
-    grub_version=2
   fi
   facter.set grub_version ${grub_version}
+
+  facter.resolve.grub-config
+}
+
+function facter.resolve.grub-config {
+  local candidates=(
+    '/boot/grub2/grub.cfg'
+    '/boot/grub/grub.cfg'
+    '/boot/grub/grub.conf'
+  )
+  for candidate in ${candidates[@]}; do
+    if [ -f $candidate ]; then
+      facter.set grub_config ${candidate}
+      break
+    fi
+  done
 }
 
 facter.resolve.grub
