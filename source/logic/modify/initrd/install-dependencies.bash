@@ -22,6 +22,8 @@ function initrd.install-dependencies {
     tools="${tools} xfs_growfs"
   fi
 
+  logger.info "Root filesystem type: ${COLOR_CYAN}${fstype}"
+
   logger.debug "Tools to be installed: ${tools}"
   local tempdir
   tempdir=$(facter.get initrd_tempdir)

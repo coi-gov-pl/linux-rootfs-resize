@@ -7,10 +7,11 @@ RSpec.shared_examples 'fully working linux-rootfs-resize script' do |context|
 
   describe "testing with #{centrifuge}" do
     let(:cf) { centrifuge }
-    let(:epsilon) { { epsilon: 1 }.merge(context)[:epsilon] }
     let(:size) { { size: 120 }.merge(context)[:size] }
     let(:home_size) { { home_size: 0 }.merge(context)[:home_size] }
-    let(:freespace) { size - home_size - epsilon }
+    let(:swap_size) { { swap_size: 2 }.merge(context)[:swap_size] }
+    let(:boot_size) { { boot_size: 1 }.merge(context)[:boot_size] }
+    let(:freespace) { size - home_size - swap_size - boot_size }
 
     # 1. vagrant up with mounting this repo
     describe 'performing vagrant up and mounting this repo' do

@@ -10,7 +10,7 @@ module Centrifuge
           capture: false,
           indent: '>>> ',
           chdir: Dir.pwd,
-          timeout: 30 * 60,
+          timeout: 1200 * 60,
           print: true
         }
         opts = default_options.merge(options)
@@ -66,7 +66,7 @@ module Centrifuge
         loop do
           begin
             ready = selector.select(opts[:timeout])
-            raise 'Command timeout' if ready.nil?
+            raise "Command timeout of #{opts[:timeout]}" if ready.nil?
 
             ready.each { |m| m.value.call }
           rescue EOFError

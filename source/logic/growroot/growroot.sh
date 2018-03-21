@@ -34,7 +34,10 @@ growroot()
       e2fsck -p -f /dev/${root_dev}${part_num}
       resize2fs -p /dev/${root_dev}${part_num}
     elif [ "${LRR_FSTYPE}-X" = 'xfs-X' ]; then
+      mkdir -p /mnt/rootfs
+      mount /dev/${root_dev}${part_num} /mnt/rootfs
       xfs_growfs /dev/${root_dev}${part_num}
+      umount /mnt/rootfs
     fi
   fi
 

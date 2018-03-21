@@ -21,7 +21,6 @@ growroot()
     lvm_lv_root=${cmd_root}
   fi
 
-  lvm_lv_root=$(cat /proc/cmdline | sed -E 's:.*root=([^ ]+).*:\1:g')
   lvm_pv_path=$(LANG=C lvm pvs --noheadings | awk '{print $1}')
   lvm_vg=$(LANG=C lvm pvs --noheadings | awk '{print $2}')
   lvm_pv_temp=$(echo ${lvm_pv_path} | sed 's:/dev/::')
@@ -54,7 +53,10 @@ growroot()
       resize2fs -p ${lvm_lv_root}
     elif [ "${LRR_FSTYPE}-X" = 'xfs-X' ]; then
       # Grow root XFS partition
+      mkdir -p /mnt/rootfs
+      mount ${lvm_lv_root} /mnt/rootfs
       xfs_growfs ${lvm_lv_root}
+      umount /mnt/rootfs
     fi
   fi
 
