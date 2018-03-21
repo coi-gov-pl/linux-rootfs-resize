@@ -3,7 +3,7 @@
 include facter.bash
 
 function facter.resolve.partition-type {
-  local lvm
+  local lvm fstype
   lvm=no
   # check if LVM tool lvs is present
   if which lvs 2>&1 >/dev/null; then
@@ -19,5 +19,11 @@ function facter.resolve.partition-type {
     fi
   fi
   facter.set lvm ${lvm}
+  fstype=$(LANG=C df -T | grep -E '\s/$' | awk '{print $2}' | sed -e 's:[0-9]::g')
+  facter.set fstype ${fstype}
+  if ! [[ $fstype == 'ext' ]] && ! [[ $fstype == 'xfs' ]]; then
+    logger.error "Filesystem ${fstype} is not supported, supported is only xfs or ext"
+    exit 56
+  fi
 }
 facter.resolve.partition-type

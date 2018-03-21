@@ -7,6 +7,10 @@ RSpec.shared_examples 'fully working linux-rootfs-resize script' do |context|
 
   describe "testing with #{centrifuge}" do
     let(:cf) { centrifuge }
+    let(:epsilon) { { epsilon: 1 }.merge(context)[:epsilon] }
+    let(:size) { { size: 120 }.merge(context)[:size] }
+    let(:home_size) { { home_size: 0 }.merge(context)[:home_size] }
+    let(:freespace) { size - home_size - epsilon }
 
     # 1. vagrant up with mounting this repo
     describe 'performing vagrant up and mounting this repo' do
@@ -22,9 +26,9 @@ RSpec.shared_examples 'fully working linux-rootfs-resize script' do |context|
       it { expect{ cf.halt }.not_to raise_error }
     end
     # 4. resize drive
-    describe 'resizing VM disk to 120 GiB' do
+    describe 'resizing VM disk to desired size' do
       describe 'by performing HDD resize' do
-        it { expect{ cf.resize_disk(size: 120, unit: :GiB) }.not_to raise_error }
+        it { expect{ cf.resize_disk(size: size, unit: :GiB) }.not_to raise_error }
       end
       describe 'by booting VM back online' do
         it { expect{ cf.up }.not_to raise_error }
@@ -32,8 +36,8 @@ RSpec.shared_examples 'fully working linux-rootfs-resize script' do |context|
     end
     # 5. check partition size
     describe 'resized partition of VM in megabytes' do
-      subject { cf.run(Constants::Commands::GET_ROOT_PARTITION_SIZE, output: :capture) }
-      let(:threshold) { (119 * 1024).to_i }
+      subject { cf.capture(Constants::Commands::GET_ROOT_PARTITION_SIZE) }
+      let(:threshold) { (freespace * 1024).to_i }
       describe :output do
         let(:output) { subject.output }
         let(:partition_size) { output.strip.to_i }

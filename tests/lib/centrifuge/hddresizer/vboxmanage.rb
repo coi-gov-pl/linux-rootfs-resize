@@ -1,5 +1,6 @@
 require 'centrifuge/cmdexec'
 require 'inifile'
+require 'tempfile'
 
 module Centrifuge
   module HddResizer
@@ -16,8 +17,9 @@ module Centrifuge
     class VBoxManage
       include Centrifuge::HddResizer::Executor
 
-      def initialize(vagrant)
+      def initialize(vagrant, machinename)
         @vagrant = vagrant
+        @machinename = machinename
         @vboxmachine = nil
       end
 
@@ -31,7 +33,7 @@ module Centrifuge
         spec = defaults.merge(spec)
         raise "Illegal unit passed, possible values are #{possible_units}" unless possible_units.include? spec[:unit]
 
-        @vboxmachine = Centrifuge::HddResizer::VBoxMachine.get(@vagrant.workdir)
+        @vboxmachine = Centrifuge::HddResizer::VBoxMachine.get(@vagrant.workdir, @machinename)
 
         Centrifuge.logger.debug "Resizing VM HDD to #{spec}"
 
@@ -155,8 +157,8 @@ module Centrifuge
       class << self
         include Centrifuge::HddResizer::Executor
 
-        def get(workdir)
-          machineid = File.read("#{workdir}/.vagrant/machines/default/virtualbox/id")
+        def get(workdir, machinename)
+          machineid = File.read("#{workdir}/.vagrant/machines/#{machinename}/virtualbox/id")
           vminfo = vminfo_for machineid
           Centrifuge::HddResizer::VBoxMachine.new(machineid, vminfo)
         end

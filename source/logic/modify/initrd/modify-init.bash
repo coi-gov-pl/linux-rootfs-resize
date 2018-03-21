@@ -7,7 +7,7 @@ include exec/executor.bash
 function initrd.modify-init {
   logger.info ">> Modifing init stript in Initramfs image"
 
-  local lvm osfamily initrd_init_type osfamily_lcase classifier sourcefile
+  local lvm osfamily initrd_init_type classifier sourcefile
 
   lvm=$(facter.get lvm)
   osfamily=$(facter.get osfamily)
@@ -15,13 +15,13 @@ function initrd.modify-init {
   logger.info "Initramfs init type: ${COLOR_CYAN}${initrd_init_type}"
   logger.info "Does rootfs uses LVM: ${COLOR_CYAN}${lvm}"
 
-  osfamily_lcase="${osfamily,,}"
-  classifier=''
   if [[ $lvm == 'yes' ]]; then
-    classifier="$classifier-lvm"
+    sourcefile="${REPODIR}/source/logic/growroot/growroot-lvm.sh"
+  else
+    sourcefile="${REPODIR}/source/logic/growroot/growroot.sh"
   fi
-  sourcefile="${REPODIR}/source/logic/growroot/${osfamily_lcase}/growroot${classifier}.sh"
 
+  initrd.modify-init.prerequisites
   case $initrd_init_type in
     systemd)
       initrd.modify-init.systemd "${sourcefile}"
@@ -34,21 +34,17 @@ function initrd.modify-init {
       ;;
   esac
 
-  logger.info "Initramfs was modified successfully with classifier: ${COLOR_CYAN}${classifier}"
+  logger.info "Initramfs was modified successfully with script: ${COLOR_CYAN}${sourcefile}"
 }
 
 function initrd.modify-init.systemd {
-  local initrd_tempdir
+  local initrd_tempdir sourcefile targethook shebang invoke scripts
+
   initrd_tempdir=$(facter.get initrd_tempdir)
-  local sourcefile
   sourcefile="$1"
-  local targethook
   targethook="${initrd_tempdir}/lib/dracut/hooks/pre-mount/growroot.sh"
-  local shebang
   shebang="${REPODIR}/source/logic/growroot/shebang.sh"
-  local invoke
   invoke="${REPODIR}/source/logic/growroot/invoke.sh"
-  local scripts
   scripts=(
     '/tmp/growroot-shebang.sh'
     '/tmp/growroot-function.sh'
@@ -96,18 +92,14 @@ function initrd.modify-init.systemv-scripts-local {
 }
 
 function initrd.modify-init.systemv {
-  local procname
+  local procname init_script sourcefile proc_insert_point call_insert_point
+
   procname='growroot'
-  local init_script
   init_script="$1"
-  local sourcefile
   sourcefile="$2"
-  local proc_insert_point
   proc_insert_point="$3"
-  local call_insert_point
   call_insert_point="$4"
 
-  initrd.modify-init.systemv-prerequisites
   if ! grep -qE "^${procname}\(\)$" "${init_script}"; then
     if ! grep -qE "${proc_insert_point}" "${init_script}"; then
       logger.error "Function insert point: '${proc_insert_point}' is not found in init script: ${init_script}"
@@ -140,13 +132,15 @@ function initrd.modify-init.systemv {
   logger.info "Successfully patched Initramfs init script, by adding growroot procedure: ${COLOR_CYAN}${init_script}"
 }
 
-function initrd.modify-init.systemv-prerequisites {
-  local lvm
+function initrd.modify-init.prerequisites {
+  local lvm fstype initrd_tempdir
   lvm=$(facter.get lvm)
-  local initrd_tempdir
+  fstype=$(facter.get fstype)
   initrd_tempdir=$(facter.get initrd_tempdir)
   executor.silently 'touch etc/mtab'
   if [ "${lvm}" == "yes" ]; then
     executor.silently "sed -i 's/locking_type = 4/locking_type = 1/' ${initrd_tempdir}/etc/lvm/lvm.conf"
   fi
+
+  echo "local LRR_FSTYPE=${fstype}" >> ${initrd_tempdir}/etc/lrr.conf
 }

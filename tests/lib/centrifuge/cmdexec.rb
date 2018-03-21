@@ -27,6 +27,7 @@ module Centrifuge
 
         Centrifuge.logger.debug "#{opts[:indent]}#{command}"
         Dir.chdir(opts[:chdir]) do
+          status = nil
           if opts[:capture]
             output, status = Open3.capture2(command)
             Centrifuge.logger.debug "Captured output: #{output}" if opts[:print]
@@ -34,6 +35,7 @@ module Centrifuge
             result.retcode = status.exitstatus
           else
             status = streaming(command, opts)
+            result.retcode = status.exitstatus
           end
           result.success = status.success?
         end

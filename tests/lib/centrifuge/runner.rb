@@ -16,7 +16,11 @@ module Centrifuge
       @vagrant.halt
     end
 
-    def run(script, options = {})
+    def run(script, options = { output: :print })
+      exec_on_vg(script, options)
+    end
+
+    def capture(script, options = { output: :capture })
       exec_on_vg(script, options)
     end
 
