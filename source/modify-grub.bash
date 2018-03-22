@@ -82,8 +82,27 @@ function modify-grub.legacy.redhat {
 function modify-grub.modern.debian {
   logger.info "Attaching growrooted Initramfs to GRUB2 for Debian family"
 
-  logger.error "Not yet implemented"
-  exit 133
+  local grub_config kernel kernel_growroot title
+  grub_config="$1"
+  kernel=$(facter.get kernel)
+  kernel_growroot=$(modify-grub.kernel-growroot-path)
+
+  # copy kernel
+  if [ ! -f ${kernel_growroot} ]; then
+    executor.silently "cp -v ${kernel} ${kernel_growroot}"
+  fi
+  # generate new grub2 config
+  if [ -f /usr/sbin/grub2-mkconfig ]; then
+    executor.silently "grub2-mkconfig -o ${grub_config}"
+  elif [ -f /usr/sbin/grub-mkconfig ]; then
+    executor.silently "grub-mkconfig -o ${grub_config}"
+  fi
+  # set default
+  title=$(awk -F\' '/menuentry / {print $2}' ${grub_config} | grep growroot | head -n 1)
+  executor.silently "sed -i -E 's:^GRUB_DEFAULT=0$:GRUB_DEFAULT=saved:' /etc/default/grub"
+  executor.silently "grub-set-default '${title}'"
+
+  logger.info "Set GRUB to boot by default from: ${COLOR_CYAN}${kernel_growroot}"
 }
 
 function modify-grub.legacy.debian {

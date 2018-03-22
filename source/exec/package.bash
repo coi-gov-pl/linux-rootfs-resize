@@ -45,9 +45,14 @@ function package.apt.add-repo {
 # private functions - do not use
 
 function package.apt.last-update {
-  local apt_date
-  apt_date="$(stat -c %Y '/var/cache/apt')"
-  local now_date
+  local apt_date now_date
+
+  if ! [ -f /var/cache/apt/update ]; then
+    executor.silently 'mkdir -p /var/cache/apt'
+    executor.silently 'touch -d "365 days ago" /var/cache/apt/update'
+  fi
+
+  apt_date="$(stat -c %Y '/var/cache/apt/update')"
   now_date="$(date +'%s')"
 
   echo $((now_date - apt_date))
@@ -56,13 +61,13 @@ function package.apt.last-update {
 function package.apt.ensure-updated {
   if [[ "$(package.apt.last-update)" -gt $APT_UPDATE_INTERVAL ]]; then
     executor.stream 'apt-get update -m'
+    executor.silently 'touch /var/cache/apt/update'
   fi
 }
 
 function package.install.debian {
-  local packages
+  local packages tobeinstalled
   packages="$@"
-  local tobeinstalled
   tobeinstalled="$(package.filter-installed $packages)"
   if [[ "${tobeinstalled}-X" != '-X' ]]; then
     package.apt.ensure-updated
@@ -95,9 +100,8 @@ function package.filter-installed {
 }
 
 function package.is-installed {
-  local packagename
+  local packagename installed
   packagename="$1"
-  local installed
   installed="$(package.info "${packagename}" | cut -d: -f1)"
   if [[ $installed == 'yes' ]]; then
     return 0

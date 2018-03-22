@@ -1,6 +1,10 @@
 growroot()
 {
-  set -eo pipefail
+  local state
+  state=$(set +o)
+
+  set -o pipefail
+  set -e
   echo "[] linux-rootfs-resize ..."
   set -x
 
@@ -27,18 +31,22 @@ growroot()
   lvm_pv_dev=$(echo ${lvm_pv_temp} | sed 's/[^a-z]//g')
   lvm_pv_part=$(echo ${lvm_pv_temp} | sed 's/[^0-9]//g')
 
-  freespace=$(LANG=C parted /dev/${lvm_pv_dev} unit MB print free | awk '/Free Space/{c++; sum += $3} END{if(c == 0) print 0; else print sum}')
+  freespace=$(LANG=C parted /dev/${lvm_pv_dev} unit MB print free | awk '/Free Space/{c++; sum += int($3)} END{if(c == 0) print 0; else print sum}')
 
   # Try to extend partition if there is min. 100 MiB free space
   if [ "$freespace" -gt $threshhold ]; then
     local start
-    start=$(LANG=C parted /dev/${lvm_pv_dev} unit MB print free | awk 'BEGIN {found = 0; start = 0} /Free Space/ {actual = $3 + 0; if (actual > found) { found = actual; start = $1 + 0 } } END { print start }')
+    start=$(LANG=C parted /dev/${lvm_pv_dev} unit MB print free | awk 'BEGIN {found = 0; start = 0} /Free Space/ {actual = int($3); if (actual > found) { found = actual; start = int($1) } } END { print start }')
+
+    ls /dev/${lvm_pv_dev}[0-9]* | sort > /tmp/partitions.before
     # Create new partition at end of the disk
     parted -a optimal -s /dev/${lvm_pv_dev} "mkpart primary ext4 ${start} -0"
     # Notify kernel of newly created partitions
     partprobe -s /dev/${lvm_pv_dev}
+    ls /dev/${lvm_pv_dev}[0-9]* | sort > /tmp/partitions.after
 
-    lvm_pv_newpart=$(ls /dev/${lvm_pv_dev}[0-9] | sed 's:[^0-9]::g' | sort | tail -n 1)
+    lvm_pv_newpart=$(comm -13 /tmp/partitions.before /tmp/partitions.after)
+    lvm_pv_newpart=$(echo "${lvm_pv_newpart}" | sed 's:[^0-9]::g')
     # Create new PV
     lvm pvcreate -v /dev/${lvm_pv_dev}${lvm_pv_newpart}
     # Extend VG with newly created PV
@@ -60,7 +68,10 @@ growroot()
     fi
   fi
 
+  echo "[*] linux-rootfs-resize - DONE"
+
   set +x
+  eval "${state}"
 
   return 0
 }

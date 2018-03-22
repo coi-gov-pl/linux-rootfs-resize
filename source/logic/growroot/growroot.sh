@@ -1,6 +1,10 @@
 growroot()
 {
-  set -eo pipefail
+  local state
+  state=$(set +o)
+
+  set -o pipefail
+  set -e
   echo "[] linux-rootfs-resize ..."
   set -x
 
@@ -41,7 +45,10 @@ growroot()
     fi
   fi
 
+  echo "[*] linux-rootfs-resize - DONE"
+
   set +x
+  eval "${state}"
 
   return 0
 }

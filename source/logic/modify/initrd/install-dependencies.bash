@@ -9,7 +9,7 @@ function initrd.install-dependencies {
   logger.info ">> Installing tools to Initramfs image"
   local tools osfamily lvm fstype
 
-  tools='partprobe partx sfdisk sed awk parted tail sort'
+  tools='partprobe partx sfdisk sed awk parted comm sort'
   osfamily=$(facter.get osfamily)
   lvm=$(facter.get lvm)
   fstype=$(facter.get fstype)
@@ -39,17 +39,22 @@ function initrd.copy-tool {
   local tool
   tool="$2"
   local initrd_path
-  initrd_path='bin sbin usr/bin usr/sbin'
+  initrd_path=('bin' 'sbin' 'usr/bin' 'usr/sbin')
 
   logger.debug "Ensure tool: ${tool} is copied to Initramfs image: ${tempdir}"
 
   cd $tempdir
 
-  local tool_present
+  local tool_present tool_candidate
 
   tool_present=0
-  for bin_path in "${initrd_path}"; do
-    [[ -f ${tempdir}${bin_path}/${tool} ]] && tool_present=1
+  for bin_path in ${initrd_path[@]}; do
+    tool_candidate="${tempdir}/${bin_path}/${tool}"
+    logger.debug "Checking existance of tool ${tool} in path ${tool_candidate}"
+    if [ -f ${tool_candidate} ]; then
+      tool_present=1
+      break
+    fi
   done
   if [ ${tool_present} -eq 0 ]; then
     # get tools path
