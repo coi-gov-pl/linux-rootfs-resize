@@ -1,6 +1,6 @@
 growroot()
 {
-  local state
+  local state path_saved ldpath_saved
   state=$(set +o)
 
   set -o pipefail
@@ -8,18 +8,23 @@ growroot()
   echo "[] linux-rootfs-resize ..."
   set -x
 
+  path_saved="${PATH}"
+  ldpath_saved="${LD_LIBRARY_PATH}"
+  export PATH="/growroot/bin:${PATH}"
+  export LD_LIBRARY_PATH="/growroot/lib:${LD_LIBRARY_PATH}"
+
   . /etc/lrr.conf
 
   local cmd_root
   local lvm_lv_root lvm_pv_path lvm_pv_temp lvm_pv_dev lvm_pv_part freespace threshhold lvm_pv_newpart lvm_vg
 
   threshhold=100
-  cmd_root=$(cat /proc/cmdline | sed -E 's:.*root=([^ ]+).*:\1:g')
+  cmd_root=$(cat /proc/cmdline | sed -r 's:.*root=([^ ]+).*:\1:g')
   if echo "${cmd_root}" | grep -q 'UUID='; then
-    local uuid=$(echo "${cmd_root}" | sed -E 's:UUID=(.+):\1:g')
+    local uuid=$(echo "${cmd_root}" | sed -r 's:UUID=(.+):\1:g')
     lvm_lv_root=$(readlink -f /dev/disk/by-uuid/${uuid})
   elif echo "${cmd_root}" | grep -q 'LABEL='; then
-    local label=$(echo "${cmd_root}" | sed -E 's:LABEL=(.+):\1:g')
+    local label=$(echo "${cmd_root}" | sed -r 's:LABEL=(.+):\1:g')
     lvm_lv_root=$(readlink -f /dev/disk/by-label/${label})
   else
     lvm_lv_root=${cmd_root}
@@ -71,6 +76,8 @@ growroot()
   echo "[*] linux-rootfs-resize - DONE"
 
   set +x
+  export PATH="${path_saved}"
+  export LD_LIBRARY_PATH="${ldpath_saved}"
   eval "${state}"
 
   return 0
