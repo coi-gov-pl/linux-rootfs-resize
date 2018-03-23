@@ -142,5 +142,6 @@ function initrd.modify-init.prerequisites {
     executor.silently "sed -i 's/locking_type = 4/locking_type = 1/' ${initrd_tempdir}/etc/lvm/lvm.conf"
   fi
 
-  echo "local LRR_FSTYPE=${fstype}" >> ${initrd_tempdir}/etc/lrr.conf
+  executor.silently "mkdir -p ${initrd_tempdir}/etc"
+  executor.silently "echo 'local LRR_FSTYPE=${fstype}' >> ${initrd_tempdir}/etc/lrr.conf"
 }
