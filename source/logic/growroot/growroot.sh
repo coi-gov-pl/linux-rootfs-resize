@@ -40,6 +40,7 @@ growroot()
     partx -a /dev/${root_dev}
 
     if [ "${LRR_FSTYPE}-X" = 'ext-X' ]; then
+      touch /etc/mtab
       e2fsck -p -f /dev/${root_dev}${part_num}
       resize2fs -p /dev/${root_dev}${part_num}
     elif [ "${LRR_FSTYPE}-X" = 'xfs-X' ]; then

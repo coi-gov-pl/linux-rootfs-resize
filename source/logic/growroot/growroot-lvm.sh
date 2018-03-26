@@ -60,8 +60,12 @@ growroot()
     # Extend LV to 100% free space
     lvm lvextend -v -l +100%FREE ${lvm_lv_root}
 
+    if [ ! -f ${lvm_lv_root} ]; then
+      lvm vgchange --sysinit -ay
+    fi
     if [ "${LRR_FSTYPE}-X" = 'ext-X' ]; then
       # Grow root EXT partition
+      touch /etc/mtab
       e2fsck -p -f ${lvm_lv_root}
       resize2fs -p ${lvm_lv_root}
     elif [ "${LRR_FSTYPE}-X" = 'xfs-X' ]; then

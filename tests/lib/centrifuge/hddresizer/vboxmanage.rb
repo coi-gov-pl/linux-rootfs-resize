@@ -77,7 +77,7 @@ module Centrifuge
           convert_vdi_to_vmdk(vdi, vmdk)
           attach_hdd(vmdk)
         ensure
-          tmpfile.unlink
+          File.delete vdi
         end
       end
 
