@@ -38,7 +38,7 @@ RSpec.shared_examples 'fully working linux-rootfs-resize script' do |context|
     # 5. check partition size
     describe 'resized partition of VM in megabytes' do
       subject { cf.capture(Constants::Commands::GET_ROOT_PARTITION_SIZE) }
-      let(:threshold) { (freespace * 1024).to_i }
+      let(:threshold) { (freespace * 1024 * 0.9998).to_i }
       describe :output do
         let(:output) { subject.output }
         let(:partition_size) { output.strip.to_i }

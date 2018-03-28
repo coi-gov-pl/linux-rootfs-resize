@@ -1,10 +1,14 @@
+#!/bin/sh
 growroot()
 {
   local state path_saved ldpath_saved
   state=$(set +o)
 
-  set -o pipefail
+  if echo "${state}" | grep -q pipefail; then
+    set -o pipefail
+  fi
   set -e
+  . /lib/growroot-lib.sh
   echo "[] linux-rootfs-resize ..."
   set -x
 
@@ -12,8 +16,6 @@ growroot()
   ldpath_saved="${LD_LIBRARY_PATH}"
   export PATH="/growroot/bin:${PATH}"
   export LD_LIBRARY_PATH="/growroot/lib:${LD_LIBRARY_PATH}"
-
-  . /etc/lrr.conf
 
   local cmd_root root_part root_dev part_num threshhold
   local uuid label root_dev_temp
@@ -33,17 +35,19 @@ growroot()
   root_dev=$(echo ${root_dev_temp} | sed "s/[^a-z]//g")
   part_num=$(echo ${root_dev_temp} | sed "s/[^0-9]//g")
 
-  freespace=$(parted /dev/${root_dev} unit MB print free | awk '/Free Space/{c++; sum += $3} END{if(c == 0) print 0; else print sum}')
+  freespace=$(LANG=C parted /dev/${root_dev} unit MB print free | awk '/Free Space/{c++; sum += $3} END{if(c == 0) print 0; else print sum}')
 
-  if [[ "$freespace" -gt $threshhold ]]; then
+  if [ "$freespace" -gt $threshhold ]; then
+    local fstype
     growpart -v /dev/${root_dev} ${part_num}
     partx -a /dev/${root_dev}
 
-    if [ "${LRR_FSTYPE}-X" = 'ext-X' ]; then
+    fstype=$(facter_get fstype)
+    if [ "${fstype}-X" = 'ext-X' ]; then
       touch /etc/mtab
       e2fsck -p -f /dev/${root_dev}${part_num}
       resize2fs -p /dev/${root_dev}${part_num}
-    elif [ "${LRR_FSTYPE}-X" = 'xfs-X' ]; then
+    elif [ "${fstype}-X" = 'xfs-X' ]; then
       mkdir -p /mnt/rootfs
       mount /dev/${root_dev}${part_num} /mnt/rootfs
       xfs_growfs /dev/${root_dev}${part_num}

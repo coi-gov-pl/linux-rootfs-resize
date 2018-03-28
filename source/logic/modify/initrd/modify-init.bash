@@ -7,15 +7,14 @@ include exec/executor.bash
 function initrd.modify-init {
   logger.info ">> Modifing init stript in Initramfs image"
 
-  local lvm osfamily initrd_init_type classifier sourcefile
+  local initrd_init_type sourcefile partition_management
 
-  lvm=$(facter.get lvm)
-  osfamily=$(facter.get osfamily)
   initrd_init_type=$(facter.get initrd_init_type)
+  partition_management=$(facter.get partition_management)
   logger.info "Initramfs init type: ${COLOR_CYAN}${initrd_init_type}"
-  logger.info "Does rootfs uses LVM: ${COLOR_CYAN}${lvm}"
+  logger.info "Partition management: ${COLOR_CYAN}${partition_management}"
 
-  if [[ $lvm == 'yes' ]]; then
+  if [[ $partition_management == 'lvm' ]]; then
     sourcefile="${REPODIR}/source/logic/growroot/growroot-lvm.sh"
   else
     sourcefile="${REPODIR}/source/logic/growroot/growroot.sh"
@@ -38,24 +37,14 @@ function initrd.modify-init {
 }
 
 function initrd.modify-init.systemd {
-  local initrd_tempdir sourcefile targethook shebang invoke scripts
+  local initrd_tempdir sourcefile targethook
 
   initrd_tempdir=$(facter.get initrd_tempdir)
   sourcefile="$1"
   targethook="${initrd_tempdir}/lib/dracut/hooks/pre-mount/growroot.sh"
-  shebang="${REPODIR}/source/logic/growroot/shebang.sh"
-  invoke="${REPODIR}/source/logic/growroot/invoke.sh"
-  scripts=(
-    '/tmp/growroot-shebang.sh'
-    '/tmp/growroot-function.sh'
-    '/tmp/growroot-invoke.sh'
-  )
 
-  executor.silently "cp -v ${shebang} /tmp/growroot-shebang.sh"
-  executor.silently "cp -v ${sourcefile} /tmp/growroot-function.sh"
-  executor.silently "cp -v ${invoke} /tmp/growroot-invoke.sh"
-
-  executor.silently "cat ${scripts[@]} > ${targethook}"
+  executor.silently "cp -v ${sourcefile} ${targethook}"
+  executor.silently "echo 'growroot' >> ${targethook}"
   executor.silently "chmod +x ${targethook}"
 
   logger.info "Creaded Dracut pre-mount hook: ${COLOR_CYAN}${targethook}"
@@ -92,7 +81,7 @@ function initrd.modify-init.systemv-scripts-local {
 }
 
 function initrd.modify-init.systemv {
-  local procname init_script sourcefile proc_insert_point call_insert_point
+  local procname init_script sourcefile proc_insert_point call_insert_point tempfile
 
   procname='growroot'
   init_script="$1"
@@ -100,12 +89,18 @@ function initrd.modify-init.systemv {
   proc_insert_point="$3"
   call_insert_point="$4"
 
+  tempfile=$(mktemp -t growroot-source.XXXXXX)
+  # shellcheck disable=SC2064
+  trap "executor.silently 'rm -fv ${tempfile}'" EXIT
+
+  executor.silently "cat ${sourcefile} | sed -e 's:#!/.*::' > ${tempfile}"
+
   if ! grep -qE "^${procname}\(\)$" "${init_script}"; then
     if ! grep -qE "${proc_insert_point}" "${init_script}"; then
       logger.error "Function insert point: '${proc_insert_point}' is not found in init script: ${init_script}"
       exit 24
     fi
-    executor.silently "sed -i.1 -e '/${proc_insert_point}/r ${sourcefile}' -e '//N' ${init_script}"
+    executor.silently "sed -i.1 -e '/${proc_insert_point}/r ${tempfile}' -e '//N' ${init_script}"
     if diff "${init_script}.1" "${init_script}" >/dev/null; then
       logger.error "There must be error, init is not modified!"
       exit 25
@@ -133,9 +128,8 @@ function initrd.modify-init.systemv {
 }
 
 function initrd.modify-init.prerequisites {
-  local lvm fstype initrd_tempdir
+  local lvm initrd_tempdir growrootlib fact fact_value
   lvm=$(facter.get lvm)
-  fstype=$(facter.get fstype)
   initrd_tempdir=$(facter.get initrd_tempdir)
   executor.silently 'touch etc/mtab'
   if [ "${lvm}" == "yes" ]; then
@@ -143,5 +137,11 @@ function initrd.modify-init.prerequisites {
   fi
 
   executor.silently "mkdir -p ${initrd_tempdir}/etc"
-  executor.silently "echo 'local LRR_FSTYPE=${fstype}' >> ${initrd_tempdir}/etc/lrr.conf"
+  executor.silently "echo '' > ${initrd_tempdir}/etc/lrr.conf"
+  for fact in $(facter.list.known); do
+    fact_value=$(facter.get ${fact})
+    executor.silently "echo 'local LRR_FACT_${fact}=${fact_value}' >> ${initrd_tempdir}/etc/lrr.conf"
+  done
+  growrootlib="${REPODIR}/source/logic/growroot/lib.sh"
+  executor.silently "cp -v ${growrootlib} ${initrd_tempdir}/lib/growroot-lib.sh"
 }

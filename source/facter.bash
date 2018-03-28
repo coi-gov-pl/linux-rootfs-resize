@@ -6,20 +6,22 @@ include facter/bash.bash
 if (( $BASH_MAJOR_VERSION >= 5 )) || (( $BASH_MINOR_VERSION >= 2 )); then
   declare -gA __facter_facts
 fi
+export __facter_facts_names
+__facter_facts_names=()
 
 function facter.set {
   if (( $BASH_MAJOR_VERSION >= 5 )) || (( $BASH_MINOR_VERSION >= 2 )); then
-    facter.modern.set $@
+    facter.modern.set $1 $2
   else
-    facter.legacy.set $@
+    facter.legacy.set $1 $2
   fi
 }
 
 function facter.get {
   if (( $BASH_MAJOR_VERSION >= 5 )) || (( $BASH_MINOR_VERSION >= 2 )); then
-    facter.modern.get $@
+    facter.modern.get $1
   else
-    facter.legacy.get $@
+    facter.legacy.get $1
   fi
 }
 
@@ -29,6 +31,7 @@ function facter.modern.set {
   local value
   value="$2"
   __facter_facts[$key]="${value}"
+  __facter_facts_names+=($key)
 }
 
 function facter.modern.get {
@@ -48,6 +51,7 @@ function facter.legacy.set {
   local value="$2"
 
   eval "export __facter_facts_${key} && __facter_facts_${key}='${value}'"
+  __facter_facts_names+=($key)
 }
 
 function facter.legacy.get {
@@ -64,6 +68,10 @@ function facter.legacy.get {
     exit 166
   fi
   echo "${value}"
+}
+
+function facter.list.known {
+  echo "${__facter_facts_names[@]}"
 }
 
 include facter/os.bash

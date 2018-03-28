@@ -2,12 +2,11 @@
 
 include facter.bash
 include facter/os.bash
+include lang/version.bash
 
 function facter.resolve.kernel {
   local osfamily
   osfamily=$(facter.get 'osfamily')
-  local operatingsystemmajrelease
-  operatingsystemmajrelease=$(facter.get 'operatingsystemmajrelease')
   local initrd
   if [[ $osfamily == 'RedHat' ]]; then
     initrd="/boot/initramfs-$(uname -r).img"
@@ -18,6 +17,14 @@ function facter.resolve.kernel {
   facter.set kernel "/boot/vmlinuz-$(uname -r)"
   facter.set kernel_version "$(uname -r)"
   facter.resolve.initrd-packaging
+  facter.resolve.kernel-legacy
+}
+
+function facter.resolve.kernel-legacy {
+  local kernel_version kernel_legacy
+  kernel_version=$(facter.get kernel_version)
+  kernel_legacy=$(version.match ${kernel_version} lt 3)
+  facter.set kernel_legacy ${kernel_legacy}
 }
 
 function facter.resolve.initrd-packaging {

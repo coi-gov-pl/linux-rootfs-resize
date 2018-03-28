@@ -7,11 +7,10 @@ include exec/executor.bash
 
 function initrd.install-dependencies {
   logger.info ">> Installing tools to Initramfs image"
-  local tools osfamily lvm fstype busybox_tools tempdir
+  local tools lvm fstype busybox_tools tempdir
 
   tools='partprobe partx parted'
-  busybox_tools='comm awk sed sort'
-  osfamily=$(facter.get osfamily)
+  busybox_tools='comm awk sed sort touch'
   lvm=$(facter.get lvm)
   fstype=$(facter.get fstype)
   if [[ $lvm == 'no' ]]; then
@@ -51,7 +50,7 @@ function initrd.is-tool-present {
   logger.debug "Ensure tool: ${tool} is copied to Initramfs image: ${tempdir}"
 
   tool_present=1
-  for bin_path in ${initrd_paths[@]}; do
+  for bin_path in "${initrd_paths[@]}"; do
     tool_candidate="${tempdir}/${bin_path}/${tool}"
     logger.debug "Checking existance of tool ${tool} in path ${tool_candidate}"
     if [ -x ${tool_candidate} ]; then
