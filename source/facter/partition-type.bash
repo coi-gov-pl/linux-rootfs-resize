@@ -21,8 +21,7 @@ function facter.resolve.partition-type {
   facter.set lvm ${lvm}
   [[ ${lvm} == 'yes' ]] && partition_management='lvm'
   facter.set partition_management ${partition_management}
-  # Grep multiline and sed removes new line - when df returns newline after volume name
-  fstype=$(LANG=C df -T | grep -Pzo "${rootfs_device}\n?\s+[^\s]+" | sed ':a;N;$!ba;s/\n/ /g' | awk '{print $2}' | sed -e 's:[0-9]::g')
+  fstype=$(LANG=C mount | grep "${rootfs_device}" | awk '{ print $5 }' | sed -e 's:[0-9]::g')
   facter.set fstype ${fstype}
   if ! [[ $fstype == 'ext' ]] && ! [[ $fstype == 'xfs' ]]; then
     logger.error "Filesystem ${fstype} is not supported, supported is only xfs or ext"
