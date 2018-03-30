@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+INSTALLATION_PATH=~/opt/linux-rootfs-resize
+GITHUB_API_REPO='https://api.github.com/repos/coi-gov-pl/linux-rootfs-resize'
+
+function command.exists {
+  local prog ret
+  prog="$1"
+  set +e
+  command -v ${prog} >/dev/null
+  ret=$?
+  set -e
+  return $ret
+}
+function get-latest-release {
+  local version
+  if command.exists curl; then
+    version=$(curl -s ${GITHUB_API_REPO}/releases/latest | grep 'tag_name' | cut -d '"' -f 4)
+  elif command.exists wget; then
+    version=$(wget --quiet -O - ${GITHUB_API_REPO}/releases/latest | grep 'tag_name' | cut -d '"' -f 4)
+  else
+    requirement-not-met
+  fi
+  echo "${version}"
+}
+function git-clone {
+  local version="$1"
+  git clone https://github.com/coi-gov-pl/linux-rootfs-resize.git \
+    ${INSTALLATION_PATH} \
+    --branch ${version}
+}
+function curl-tarball {
+  local version url tarball
+  version="$1"
+  url="${GITHUB_API_REPO}/tarball/${version}"
+  tarball="linux-rootfs-resize-${version}.tar.gz"
+
+  curl -s -o /tmp/${tarball} ${url}
+  mkdir -p ${INSTALLATION_PATH}
+  pushd ${INSTALLATION_PATH}
+  tar xzvf /tmp/${tarball}
+  popd
+  rm -v /tmp/${tarball}
+}
+function wget-tarball {
+  local version url tarball
+  version="$1"
+  url="${GITHUB_API_REPO}/tarball/${version}"
+  tarball="linux-rootfs-resize-${version}.tar.gz"
+
+  wget --quiet -O /tmp/${tarball} ${url}
+  mkdir -p ${INSTALLATION_PATH}
+  pushd ${INSTALLATION_PATH}
+  tar xzvf /tmp/${tarball}
+  popd
+  rm -v /tmp/${tarball}
+}
+function requirement-not-met {
+  echo 'You either need git or tar installed, also curl or wget are also required' 1>&2
+  exit 13
+}
+function run-install {
+  env ${INSTALLATION_PATH}/install
+}
+function main {
+  local version
+  version=$(get-latest-release)
+  echo "Fetching latest release version: ${version}"
+  if command.exists git; then
+    git-clone ${version}
+  elif command.exists tar; then
+    if command.exists curl; then
+      curl-tarball ${version}
+    elif command.exists wget; then
+      wget-tarball ${version}
+    else
+      requirement-not-met
+    fi
+  else
+    requirement-not-met
+  fi
+  run-install
+}
+
+main

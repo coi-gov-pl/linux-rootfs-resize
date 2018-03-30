@@ -9,7 +9,7 @@ APT_UPDATE_INTERVAL=${APT_UPDATE_INTERVAL:-7200}
 
 function package.install {
   local packages
-  packages="$@"
+  packages="$*"
   if [[ "$(facter.get 'osfamily')" == 'RedHat' ]]; then
     package.install.redhat "$packages"
   else
@@ -67,7 +67,7 @@ function package.apt.ensure-updated {
 
 function package.install.debian {
   local packages tobeinstalled
-  packages="$@"
+  packages="$*"
   tobeinstalled="$(package.filter-installed $packages)"
   if [[ "${tobeinstalled}-X" != '-X' ]]; then
     package.apt.ensure-updated
@@ -77,7 +77,7 @@ function package.install.debian {
 
 function package.install.redhat {
   local packages
-  packages="$@"
+  packages="$*"
   local tobeinstalled
   tobeinstalled=`package.filter-installed $packages`
   if [[ "${tobeinstalled}-X" != '-X' ]]; then
@@ -87,10 +87,10 @@ function package.install.redhat {
 
 function package.filter-installed {
   local packages
-  packages="$@"
+  packages="$*"
   local tobeinstalled
   tobeinstalled=''
-  for package in $(echo $packages); do
+  for package in "${packages[@]}"; do
     if ! package.is-installed $package; then
       tobeinstalled="$tobeinstalled $package"
       tobeinstalled=$(echo $tobeinstalled)
@@ -120,10 +120,9 @@ function package.info {
   local packagename
   packagename="$1"
   if [[ "$(facter.get 'osfamily')" == 'RedHat' ]]; then
-    local command
-    command="rpm -q --nosignature --nodigest --qf '%{VERSION}-%{RELEASE}.%{ARCH}' ${packagename}"
-    local version
-    version=`${command}`
+    local command version
+    command=(rpm -q --nosignature --nodigest --qf '%{VERSION}-%{RELEASE}.%{ARCH}' ${packagename})
+    version=$(${command[*]})
     if [ $? -eq 0 ]; then
       local installed
       installed='yes'
@@ -132,13 +131,10 @@ function package.info {
       installed='no'
     fi
   else
-    local command
+    local command info version installed
     command="dpkg-query -W --showformat \${Status}\:\${Version} ${packagename}"
-    local info
     info=`${command} 2>/dev/null`
-    local version
     version="$(echo ${info} | cut -d: -f2)"
-    local installed
     installed="$(echo ${info} | cut -d: -f1)"
     if [[ "${installed}" == 'install ok installed' ]]; then
       installed='yes'
