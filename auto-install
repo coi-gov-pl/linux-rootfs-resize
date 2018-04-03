@@ -2,8 +2,13 @@
 
 set -eo pipefail
 
-INSTALLATION_PATH=~/opt/linux-rootfs-resize
-GITHUB_API_REPO='https://api.github.com/repos/coi-gov-pl/linux-rootfs-resize'
+GITHUB=${GITHUB:-'github.com'}
+API_GITHUB=${API_GITHUB:-'api.github.com'}
+ORGANIZATION=${ORGANIZATION:-'coi-gov-pl'}
+PROJECT=${PROJECT:-'linux-rootfs-resize'}
+
+INSTALLATION_PATH=~/opt/${PROJECT}
+GITHUB_API_REPO="https://${API_GITHUB}/repos/${ORGANIZATION}/${PROJECT}"
 
 function command.exists {
   local prog ret
@@ -27,7 +32,7 @@ function get-latest-release {
 }
 function git-clone {
   local version="$1"
-  git clone https://github.com/coi-gov-pl/linux-rootfs-resize.git \
+  git clone https://${GITHUB}/${ORGANIZATION}/${PROJECT}.git \
     ${INSTALLATION_PATH} \
     --branch ${version}
 }
@@ -35,27 +40,29 @@ function curl-tarball {
   local version url tarball
   version="$1"
   url="${GITHUB_API_REPO}/tarball/${version}"
-  tarball="linux-rootfs-resize-${version}.tar.gz"
+  tarball="${PROJECT}-${version}.tar.gz"
 
-  curl -s -o /tmp/${tarball} ${url}
-  mkdir -p ${INSTALLATION_PATH}
-  pushd ${INSTALLATION_PATH}
-  tar xzvf /tmp/${tarball}
-  popd
-  rm -v /tmp/${tarball}
+  curl -L -o /tmp/${tarball} ${url}
+  extract-tarball /tmp/${tarball}
 }
 function wget-tarball {
   local version url tarball
   version="$1"
   url="${GITHUB_API_REPO}/tarball/${version}"
-  tarball="linux-rootfs-resize-${version}.tar.gz"
+  tarball="${PROJECT}-${version}.tar.gz"
 
-  wget --quiet -O /tmp/${tarball} ${url}
+  wget -O /tmp/${tarball} ${url}
+
+  extract-tarball /tmp/${tarball}
+}
+function extract-tarball {
+  local tarball
+  tarball="$*"
   mkdir -p ${INSTALLATION_PATH}
   pushd ${INSTALLATION_PATH}
-  tar xzvf /tmp/${tarball}
+  tar -xzv --strip-components=1 -f ${tarball}
   popd
-  rm -v /tmp/${tarball}
+  rm -v ${tarball}
 }
 function requirement-not-met {
   echo 'You either need git or tar installed, also curl or wget are also required' 1>&2
@@ -66,6 +73,9 @@ function run-install {
 }
 function main {
   local version
+  if [ "${LRR_LOG_LEVEL}" = 'DEBUG' ]; then
+    set -x
+  fi
   version=$(get-latest-release)
   echo "Fetching latest release version: ${version}"
   if command.exists git; then
