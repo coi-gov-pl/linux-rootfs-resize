@@ -10,7 +10,8 @@ Supported Linux distributions (tested):
 * Debian 8,
 * Debian 9,
 * Ubuntu 14.04,
-* Ubuntu 16.04
+* Ubuntu 16.04,
+* Ubuntu 18.04
 
 
 This tool creates new initrd (initramfs) image with ability to resize root filesystem over available space. Tipically you need this when you provision your virtual machine on OpenStack cloud for the first time (your image becomes flavor aware).
