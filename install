@@ -1,210 +1,30 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# depends on: cloud-utils
+# by Robert Plestenjak, robert.plestenjak@xlab.si
+# by Stanislav Petr, glux@glux.org
+# by Krzysztof Suszynski, krzysztof.suszynski@coi.gov.pl
+#
+# depends on: parted cloud-utils
 
-function deps() {
-  for file in ${@}; do
-    # check if is a valid file
-    [ -f ${file} ] &&
-      # is this file new?
-      if [ ! -f /tmp/initrd${file} ]; then
-        if [ ! -d /tmp/initrd$(dirname ${file}) ]; then
-          mkdir -p /tmp/initrd$(dirname ${file})
-        fi
-        cp -v ${file} /tmp/initrd${file}
-        if [ $? != 0 ]; then
-          # error, bug out
-          echo "Can't copy \"${file}\""
-          exit 1
-        fi
-      fi
-  done
-}
+set -eo pipefail
 
-function copy_tools() {
-  # install files listed in deps.lst
-  while read tool; do
-    IN=0
-    for bin_path in "${initrd_path}"; do
-      [[ -f ${bin_path}/${tool} ]] && IN=1
-    done
-    if [ ${IN} -eq 0 ]; then
-      # get tools path
-      toolpath=$(command -v ${tool})
-      if [ $? != 0 ]; then
-        # tool not installed, bug out
-        echo "\"${tool}\" not found! Please install"
-        exit 1
-      fi
-      # copy tool into initrd
-      cp -v ${toolpath} bin/${tool}
-      # install needed libraries
-      deps "($(ldd ${toolpath}))"
-    else
-      echo "${tool} present"
-    fi
-  done <${inst_dir}/distro/${distro}/deps
-}
+REPODIR="$( dirname "${BASH_SOURCE[0]}" )"
+source "${REPODIR}/source/loader.bash"
 
-function initrd() {
-  # clean up
-  [ -d /tmp/initrd ] && rm -rf /tmp/initrd
-  # create temp directory and move there
-  mkdir /tmp/initrd && cd /tmp/initrd
-  # extract current initrd
-  gunzip -c ${initrd} | cpio -i --make-directories
-  # modify
-  copy_tools
-  touch etc/mtab
-  [ "${mod_type}" == "mod_lvm" ] && \
-    sed -i "s/locking_type = 4/locking_type = 1/" etc/lvm/lvm.conf
-  mod_file=${inst_dir}/distro/${distro}/${mod_type}
-  sed -i -e "/${proc_insert_point}/r ${mod_file}" -e "//N" ${init_script}
-  sed -i "/${call_insert_point}/i ${proc_name}" ${init_script}
-  # create new
-  find ./ | cpio -H newc -o > /tmp/initrd.cpio
-  gzip -c /tmp/initrd.cpio > ${initrd}-mod
-  # clean up
-  cd ${inst_dir}
-  rm -rf /tmp/initrd.cpio /tmp/initrd
-}
+loader_flag "${BASH_SOURCE[0]}"
+loader_addpath "${REPODIR}/source"
 
-function grub_mod() {
-  case ${1} in
-    "grub1")
-      # clean existing mod
-      grubby -o ${grub_config} --grub --remove-kernel=${kernel}-mod
-      # create new mod
-      # copy kernel
-      [ ! -f ${kernel}-mod ] && cp ${kernel} ${kernel}-mod
-      # grub title
-      grub_title="$(cat /etc/redhat-release) $(uname -r) mod"
-      # grub kernel (softlink)
-      grub_kernel=${kernel}-mod
-      # modified initrd
-      grub_initrd=${initrd}-mod
-      # modify grub config
-      grubby -o ${grub_config} --grub --copy-default --add-kernel="${grub_kernel}" \
-        --title="${grub_title}" --initrd="${grub_initrd}" --make-default
-    ;;
-    "grub2")
-      # copy kernel
-      [ ! -f ${kernel}-mod ] && cp ${kernel} ${kernel}-mod
-      # generate new grub2 config
-      grub-mkconfig -o ${grub_config}
-    ;;
-  esac
-}
+include view.bash
+include install-prerequisites.bash
+include modify-initrd.bash
+include modify-grub.bash
 
-function partition_type() {
-  LVM=0
-  # check if LVM tool lvs is present
-  which lvs >/dev/null 2>&1
-  if [ $? -eq 0 ]; then
-    # check for logical volumes
-    if [[ "$(lvs --noheadings -o +lv_path)" != *No\ volume\ groups\ found* ]]; then
-      # get rootfs mount device
-      rootfs_device=$(mount |grep -o "^.* / " |awk '{print $1}')
-      # look for match, set LVM true if found
-      for lv_name in $(lvs --noheading |awk '{print $1}'); do
-        [[ "${rootfs_device}" == *${lv_name}* ]] && LVM=1
-      done
-    fi
-  fi
-  return ${LVM}
-}
+loader_finish
 
-function get_distro() {
-  distro=""
-  [ -f /etc/redhat-release ] &&
-    if [[ "$(cat /etc/redhat-release)" == *CentOS\ release\ 6* ]]; then
-      distro="centos-6"
-    fi
-  [ -f /etc/issue ] &&
-    if [[ "$(cat /etc/issue)" == *Debian\ GNU\/Linux\ 7* ]]; then
-      distro="debian-7"
-    elif [[ "$(cat /etc/issue)" == *Debian\ GNU\/Linux\ 6* ]]; then
-      distro="debian-6"
-    elif [[ "$(cat /etc/issue)" == *Ubuntu* ]]; then
-      distro="ubuntu"
-    fi
-  if [ "${distro}" == "" ]; then
-    echo "Distribution NOT supported!"
-    exit 1
-  fi
-  echo ${distro}
-}
+view.welcome
+install-prerequisites
+modify-initrd
+modify-grub
+view.farewell
 
-function main() {
-  # store directory from where we run install
-  inst_dir=$(pwd)
-
-  # set common variables
-  partition_type
-  [ $? -eq 1 ] && mod_type="mod_lvm" || mod_type="mod"
-
-  # check distro 
-  distro=$(get_distro)
-
-  # set distro specific variables
-  # RedHat derivate
-  if [ ${distro} == "centos-6" ]; then
-    initrd_path="bin sbin usr/bin usr/sbin"
-    initrd="/boot/initramfs-$(uname -r).img"
-    kernel="/boot/vmlinuz-$(uname -r)"
-    init_script="init"
-    proc_insert_point="^export PATH=.*"
-    proc_name="growroot"
-    call_insert_point="^source_all pre-mount"
-    grub_config="/boot/grub/grub.conf"
-    grub="grub1"
-  elif [ ${distro} == "debian-7" ]; then
-    initrd_path="bin sbin"
-    initrd="/boot/initrd.img-$(uname -r)"
-    kernel="/boot/vmlinuz-$(uname -r)"
-    init_script="scripts/local"
-    proc_insert_point="^mountroot()"
-    proc_name="\        growroot"
-    call_insert_point="^.*pre_mountroot$"
-    grub_config="/boot/grub/grub.cfg"
-    grub="grub2"
-  elif [ ${distro} == "debian-6" ]; then
-    initrd_path="bin sbin"
-    initrd="/boot/initrd.img-$(uname -r)"
-    kernel="/boot/vmlinuz-$(uname -r)"
-    init_script="scripts/local"
-    proc_insert_point="^mountroot()"
-    proc_name="\        growroot"
-    call_insert_point="^.*pre_mountroot$"
-    grub_config="/boot/grub/grub.cfg"
-    grub="grub2"
-  elif [ ${distro} == "ubuntu" ]; then
-    initrd_path="bin sbin"
-    initrd="/boot/initrd.img-$(uname -r)"
-    kernel="/boot/vmlinuz-$(uname -r)"
-    init_script="scripts/local"
-    proc_insert_point="^mountroot()"
-    proc_name="\        growroot"
-    call_insert_point="^.*pre_mountroot$"
-    grub_config="/boot/grub/grub.cfg"
-    grub="grub2"
-  elif [[ "$(cat /etc/issue)" == *Oracle\ Linux\ Server\ release\ 6* ]]; then
-    distro="centos-6"
-    initrd_path="bin sbin usr/bin usr/sbin"
-    initrd="/boot/initramfs-$(uname -r).img"
-    kernel="/boot/vmlinuz-$(uname -r)"
-    init_script="init"
-    proc_insert_point="^export PATH=.*"
-    proc_name="growroot"
-    call_insert_point="^source_all pre-mount"
-    grub_config="/boot/grub/grub.conf"
-    grub="grub1"
-  fi
-
-  initrd
-  grub_mod ${grub}
-}
-
-main
 exit 0
-

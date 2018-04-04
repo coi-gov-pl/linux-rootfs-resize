@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+GITHUB=${GITHUB:-'github.com'}
+API_GITHUB=${API_GITHUB:-'api.github.com'}
+ORGANIZATION=${ORGANIZATION:-'coi-gov-pl'}
+PROJECT=${PROJECT:-'linux-rootfs-resize'}
+
+INSTALLATION_PATH=~/opt/${PROJECT}
+GITHUB_API_REPO="https://${API_GITHUB}/repos/${ORGANIZATION}/${PROJECT}"
+
+function command.exists {
+  local prog ret
+  prog="$1"
+  set +e
+  command -v ${prog} >/dev/null
+  ret=$?
+  set -e
+  return $ret
+}
+function get-latest-release {
+  local version
+  if command.exists curl; then
+    version=$(curl -s ${GITHUB_API_REPO}/releases/latest | grep 'tag_name' | cut -d '"' -f 4)
+  elif command.exists wget; then
+    version=$(wget --quiet -O - ${GITHUB_API_REPO}/releases/latest | grep 'tag_name' | cut -d '"' -f 4)
+  else
+    requirement-not-met
+  fi
+  echo "${version}"
+}
+function git-clone {
+  local version="$1"
+  git clone https://${GITHUB}/${ORGANIZATION}/${PROJECT}.git \
+    ${INSTALLATION_PATH} \
+    --branch ${version}
+}
+function curl-tarball {
+  local version url tarball
+  version="$1"
+  url="${GITHUB_API_REPO}/tarball/${version}"
+  tarball="${PROJECT}-${version}.tar.gz"
+
+  curl -L -o /tmp/${tarball} ${url}
+  extract-tarball /tmp/${tarball}
+}
+function wget-tarball {
+  local version url tarball
+  version="$1"
+  url="${GITHUB_API_REPO}/tarball/${version}"
+  tarball="${PROJECT}-${version}.tar.gz"
+
+  wget -O /tmp/${tarball} ${url}
+
+  extract-tarball /tmp/${tarball}
+}
+function extract-tarball {
+  local tarball
+  tarball="$*"
+  mkdir -p ${INSTALLATION_PATH}
+  pushd ${INSTALLATION_PATH}
+  tar -xzv --strip-components=1 -f ${tarball}
+  popd
+  rm -v ${tarball}
+}
+function requirement-not-met {
+  echo 'You either need git or tar installed, also curl or wget are also required' 1>&2
+  exit 13
+}
+function run-install {
+  env ${INSTALLATION_PATH}/install
+}
+function main {
+  local version
+  if [ "${LRR_LOG_LEVEL}" = 'DEBUG' ]; then
+    set -x
+  fi
+  version=$(get-latest-release)
+  echo "Fetching latest release version: ${version}"
+  if command.exists git; then
+    git-clone ${version}
+  elif command.exists tar; then
+    if command.exists curl; then
+      curl-tarball ${version}
+    elif command.exists wget; then
+      wget-tarball ${version}
+    else
+      requirement-not-met
+    fi
+  else
+    requirement-not-met
+  fi
+  run-install
+}
+
+main

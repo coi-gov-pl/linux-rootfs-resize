@@ -1,0 +1,17 @@
+source ENV['GEM_SOURCE'] || "https://rubygems.org"
+
+ruby '~> 2.4.0'
+
+group :tests do
+  gem 'rake', require: false
+  gem 'rspec', require: false
+  gem 'rspec-its', require: false
+  gem 'vagrant-wrapper', require: false
+  gem 'nio4r', require: false
+  gem 'inifile', require: false
+end
+
+group :development do
+  gem 'pry'
+  gem 'pry-byebug'
+end
