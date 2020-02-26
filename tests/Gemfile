@@ -3,7 +3,7 @@ source ENV['GEM_SOURCE'] || "https://rubygems.org"
 ruby '~> 2.4.0'
 
 group :tests do
-  gem 'rake', require: false
+  gem 'rake', '>= 12.3.3', require: false
   gem 'rspec', require: false
   gem 'rspec-its', require: false
   gem 'vagrant-wrapper', require: false

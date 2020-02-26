@@ -13,7 +13,7 @@ GEM
     pry-byebug (3.6.0)
       byebug (~> 10.0)
       pry (~> 0.10)
-    rake (12.3.0)
+    rake (13.0.1)
     rspec (3.7.0)
       rspec-core (~> 3.7.0)
       rspec-expectations (~> 3.7.0)
@@ -40,7 +40,7 @@ DEPENDENCIES
   nio4r
   pry
   pry-byebug
-  rake
+  rake (>= 12.3.3)
   rspec
   rspec-its
   vagrant-wrapper
@@ -49,4 +49,4 @@ RUBY VERSION
    ruby 2.4.0p0
 
 BUNDLED WITH
-   1.16.1
+   1.17.3
